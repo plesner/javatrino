@@ -25,6 +25,17 @@ public interface IPlanktonFactory {
   }
 
   /**
+   * A plankton seed builder.
+   */
+  public interface IPlanktonSeed extends ISeed {
+
+    public IPlanktonSeed setHeader(Object value);
+
+    public IPlanktonSeed setPayload(Object value);
+
+  }
+
+  /**
    * Creates a new empty map object.
    */
   public IPlanktonMap newMap();
@@ -33,5 +44,10 @@ public interface IPlanktonFactory {
    * Creates a new empty array object.
    */
   public IPlanktonArray newArray();
+
+  /**
+   * Creates a new empty seed object.
+   */
+  public IPlanktonSeed newSeed();
 
 }

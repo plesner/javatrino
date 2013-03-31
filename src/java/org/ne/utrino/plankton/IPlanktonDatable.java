@@ -10,6 +10,6 @@ public interface IPlanktonDatable {
   /**
    * Return a plankton representation of this object.
    */
-  public Object toPlanktonData(IPlanktonFactory factory);
+  public ISeed toPlanktonData(IPlanktonFactory factory);
 
 }

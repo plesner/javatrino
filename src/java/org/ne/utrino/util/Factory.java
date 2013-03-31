@@ -3,6 +3,7 @@ package org.ne.utrino.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.TreeMap;
 
@@ -24,6 +25,13 @@ public class Factory {
    */
   public static <K, V> HashMap<K, V> newHashMap() {
     return new HashMap<K, V>();
+  }
+
+  /**
+   * Creates a new identity hash map.
+   */
+  public static <K, V> IdentityHashMap<K, V> newIdentityHashMap() {
+    return new IdentityHashMap<K, V>();
   }
 
   /**
