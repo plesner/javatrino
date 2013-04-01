@@ -1,0 +1,48 @@
+require $math;
+
+## A simple cartesian point. Endlessly useful.
+##
+## Can for instance be used as,
+##
+#@   def $p := new @Point(x: 4, y: 5);
+#@   def $n := $p.norm;
+type @Point {
+
+  # The coordinates.
+  @read def $x;
+  @read def $y;
+
+  # Creates a new Point with the given coordinates.
+  @constructor  
+  def new @Point(x: $x, x: $y) {
+    def $result := new super();
+    $result:x := $x;
+    $result:y := $y;
+    return $result;
+  }
+
+  # Returns true iff this point is equal, coordinate wise, to the given other
+  # point.  
+  def $this == ($that is @Point) =>
+    ($this.x == $that.x) and ($this.y == $that.y);
+
+  # Static constant that holds (0, 0).  
+  def @Point:origin := new @Point(x: 0, y: 0);
+
+  # Returns the point at (0, 0).
+  def @Point.origin => @Point:origin;
+
+  # Compares two points lexically, that is, first by the x coordinate and if
+  # they are equal by y coordinate.
+  def $this <=> ($that is @Point) =>
+    if $this.x == $that.x
+      then $this.y <=> $that.y
+      else $this.x <=> $that.x;
+
+  # Returns the length of the vector starting in the origin and ending at this
+  # point.
+  def $this.norm =>
+    $math:square_root(($this.x * $this.x) + ($this.y + $this.y));
+
+}
+

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language id="neutrino" _name="Neutrino" version="2.0" _section="Sources">
+  <metadata>
+    <property name="mimetypes">application/neutrino</property>
+    <property name="globs">*.n;*.neutrino</property>
+    <property name="line-comment-start">#</property>
+  </metadata>
+
+  <styles>
+    <style id="comment"     _name="Comment"      map-to="def:comment"/>
+    <style id="string"      _name="String"       map-to="def:string"/>
+    <style id="word"        _name="Word"         map-to="def:keyword"/>
+    <style id="keyword"     _name="Keyword"      map-to="def:underlined"/>
+    <style id="dynamic"     _name="Dynamic"      map-to="def:identifier"/>
+    <style id="static"      _name="Static"       map-to="def:type"/>
+    <style id="string"      _name="String"       map-to="def:string"/>
+    <style id="namedop"     _name="Named Op"     map-to="def:function"/>
+    <style id="specialop"   _name="Special Op"   map-to="def:function"/>
+    <style id="number"      _name="Number"       map-to="def:constant"/>
+    <style id="reservedop"  _name="Reserved Op"/>
+  </styles>
+
+  <definitions>
+  
+    <context id="number">
+      <include>
+        <context style-ref="number">
+          <match>[0-9]+</match>
+        </context>
+      </include>
+    </context>
+  
+    <context id="dynamic-variable">
+      <include>
+        <context style-ref="dynamic">
+          <match>\$[a-zA-Z_][a-zA-Z0-9_:]*</match>
+        </context>
+      </include>
+    </context>
+
+    <context id="static-variable">
+      <include>
+        <context style-ref="static">
+          <match>\@[a-zA-Z_][a-zA-Z0-9_:]*</match>
+        </context>
+      </include>
+    </context>
+    
+    <context id="named-operator">
+      <include>
+        <context style-ref="namedop">
+          <match>\.[a-zA-Z_][a-zA-Z0-9_]*</match>
+        </context>
+      </include>
+    </context>
+    
+    <define-regex id="reserved-operators">(:=)|(=&gt;)</define-regex>
+    <define-regex id="special-operator-char">[+\-*/=&lt;&gt;]</define-regex>
+
+    <context id="reserved-operator">
+      <include>
+        <context style-ref="reservedop">
+          <match>\%{reserved-operators}</match>
+        </context>
+      </include>
+    </context>
+
+    <context id="special-operator">
+      <include>
+        <context style-ref="specialop">
+          <match>(?!\%{reserved-operators}(?!\%{special-operator-char}))\%{special-operator-char}*</match>
+        </context>
+      </include>
+    </context>
+
+    <context id="keyword">
+      <include>
+        <context style-ref="keyword">
+          <match>[a-zA-Z_][a-zA-Z0-9_]*(?=:)</match>
+        </context>
+      </include>
+    </context>    
+
+    <context id="word">
+      <include>
+        <context style-ref="word">
+          <match>[a-zA-Z_][a-zA-Z0-9_]*(?![a-zA-Z0-9:_])</match>
+        </context>
+      </include>
+    </context>    
+
+    <context id="neutrino" class="no-spell-check">
+      <include>
+        <context ref="number"/>
+        <context ref="dynamic-variable"/>
+        <context ref="static-variable"/>
+        <context ref="named-operator"/>
+        <context ref="special-operator"/>
+        <context ref="reserved-operator"/>
+        <context ref="word"/>
+        <context ref="keyword"/>
+        <context ref="def:shell-like-comment"/>
+        <context ref="def:string" style-ref="string"/>
+      </include>
+    </context>
+
+  </definitions>
+</language>
