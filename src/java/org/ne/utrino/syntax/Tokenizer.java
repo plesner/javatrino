@@ -2,22 +2,24 @@ package org.ne.utrino.syntax;
 
 import java.util.List;
 
-import org.ne.utrino.syntax.IToken.Type;
+import org.ne.utrino.syntax.Token.DelimiterStatus;
+import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Internal;
+import org.ne.utrino.util.Name;
 
 /**
  * Utility for chopping a string into tokens.
  */
-public class Tokenizer<T> {
+public class Tokenizer {
 
   private final ICharStream source;
-  private final ITokenFactory<T> tokenFactory;
+  private DelimiterStatus nextDelimStatus = DelimiterStatus.NONE;
 
-  public Tokenizer(ICharStream source, ITokenFactory<T> tokenFactory) {
+  public Tokenizer(ICharStream source) {
     this.source = source;
-    this.tokenFactory = tokenFactory;
+    this.skipEther();
   }
 
   /**
@@ -43,15 +45,6 @@ public class Tokenizer<T> {
 
   private void advance() {
     source.advance();
-  }
-
-  /**
-   * Returns true if we're at the second character of a pair (that is,
-   * we're not at the very beginning or end) and that pair is different
-   * from the specified values.
-   */
-  private boolean atDifferentPair(char first, char second) {
-    return hasMore() && ((getCurrent() != first) || (source.getNext() != second));
   }
 
   /**
@@ -126,181 +119,147 @@ public class Tokenizer<T> {
     return (c == '\n') || (c == '\r') || (c == '\f');
   }
 
+  private void skipEther() {
+    while (hasMore() && isSpace(getCurrent()))
+      advance();
+  }
+
   /**
    * Advances over the next token or tokens, adding them to the given
    * list.
    */
-  public T scanNext() {
+  public Token scanNext() {
     Assert.that(hasMore());
-    T result;
-    if (isNewline(getCurrent())) {
-      result = tokenFactory.newNewline(getCurrent());
-      advance();
-    } else if (isSpace(getCurrent())) {
-      result = scanSpace();
-    } else if (isWordStart(getCurrent())) {
-      result = scanWord();
+    Token result;
+    DelimiterStatus delimStatus = this.nextDelimStatus;
+    this.nextDelimStatus = DelimiterStatus.NONE;
+    if (isWordStart(getCurrent())) {
+      result = scanWord(delimStatus);
     } else if (isNumberStart(getCurrent())) {
-      result = scanNumber();
+      result = scanNumber(delimStatus);
     } else if (isOperatorStart(getCurrent())) {
-      result = scanOperator();
+      result = scanOperator(delimStatus);
     } else {
       switch (getCurrent()) {
       case '$':
-        result = scanIdentifier();
+        result = scanIdentifier(delimStatus);
         break;
       case '.':
-        result = scanNamedOperator();
+        result = scanNamedOperator(delimStatus);
         break;
       case '"':
-        result = scanString();
+        result = scanString(delimStatus);
         break;
       case '(':
-        result = tokenFactory.newPunctuation(Type.LPAREN);
+        result = Token.newPunctuation(Type.LPAREN, delimStatus);
         advance();
         break;
       case ')':
-        result = tokenFactory.newPunctuation(Type.RPAREN);
+        result = Token.newPunctuation(Type.RPAREN, delimStatus);
         advance();
         break;
       case '[':
-        result = tokenFactory.newPunctuation(Type.LBRACK);
+        result = Token.newPunctuation(Type.LBRACK, delimStatus);
         advance();
         break;
       case ']':
-        result = tokenFactory.newPunctuation(Type.RBRACK);
+        result = Token.newPunctuation(Type.RBRACK, delimStatus);
         advance();
         break;
       case '{':
-        result = tokenFactory.newPunctuation(Type.LBRACE);
+        result = Token.newPunctuation(Type.LBRACE, delimStatus);
         advance();
         break;
       case '}':
-        result = tokenFactory.newPunctuation(Type.RBRACE);
+        this.nextDelimStatus = delimStatus.IMPLICIT;
+        result = Token.newPunctuation(Type.RBRACE, delimStatus);
         advance();
         break;
       case ';':
-        result = tokenFactory.newPunctuation(Type.SEMI);
+        result = Token.newPunctuation(Type.SEMI, DelimiterStatus.EXPLICIT);
         advance();
         break;
       case ',':
-        result = tokenFactory.newPunctuation(Type.COMMA);
+        result = Token.newPunctuation(Type.COMMA, delimStatus);
         advance();
-        break;
-      case '#':
-        advance();
-        switch (getCurrent()) {
-        case '#': case '@': case '-':
-          result = scanEndOfLineComment(getCursor() - 1);
-          break;
-        case '{':
-          result = scanBlockComment(getCursor() - 1);
-          break;
-        default:
-          result = tokenFactory.newPunctuation(Type.HASH);
-          break;
-        }
         break;
       case '@':
-        result = tokenFactory.newPunctuation(Type.AT);
+        result = Token.newPunctuation(Type.AT, delimStatus);
         advance();
         break;
       default:
-        result = tokenFactory.newError(getCurrent());
+        result = new Token(Type.ERROR, Character.toString(getCurrent()),
+            DelimiterStatus.NONE);
         advance();
         break;
       }
     }
+    this.skipEther();
     return result;
-  }
-
-  private T scanSpace() {
-    int start = getCursor();
-    while (hasMore() && isSpaceNotNewline(getCurrent()))
-      advance();
-    return tokenFactory.newSpace(source.substring(start, getCursor()));
-  }
-
-  private T scanEndOfLineComment(int start) {
-    while (hasMore() && !isNewline(getCurrent()))
-      advance();
-    return tokenFactory.newComment(source.substring(start, getCursor()));
-  }
-
-  private T scanBlockComment(int start) {
-    int lineStart = start;
-    while (atDifferentPair('}', '#'))
-      advance();
-    // If we reached the end we're at the final '#' so we advance past
-    // it.
-    if (hasMore())
-      advance();
-    if (hasMore())
-      advance();
-    return tokenFactory.newComment(source.substring(lineStart, getCursor()));
   }
 
   /**
    * Advances over the current word token.
    */
-  private T scanWord() {
+  private Token scanWord(DelimiterStatus delimStatus) {
     int start = getCursor();
     while (hasMore() && isWordPart(getCurrent()))
       advance();
     if (hasMore() && getCurrent() == ':') {
       int end = getCursor();
       advance();
-      return tokenFactory.newKeyword(source.substring(start, end));
+      return new Token(Type.KEYWORD, source.substring(start, end), delimStatus);
     } else {
-      return tokenFactory.newWord(source.substring(start, getCursor()));
+      return new Token(Type.WORD, source.substring(start, getCursor()), delimStatus);
     }
   }
 
-  private T scanIdentifier() {
+  private Token scanIdentifier(DelimiterStatus delimStatus) {
     Assert.equals('$', getCurrent());
-    advance();
     int start = getCursor();
-    while (hasMore() && isWordPart(getCurrent()))
+    advance();
+    while (hasMore() && (isWordPart(getCurrent()) || (getCurrent() == ':')))
       advance();
-    return tokenFactory.newIdentifier(source.substring(start, getCursor()));
+    String value = source.substring(start, getCursor());
+    return new Token.NameToken(value, delimStatus, true, Name.of(value.substring(1).split(":")));
   }
 
   /**
    * Advances over the current number.
    */
-  private T scanNumber() {
+  private Token scanNumber(DelimiterStatus delimStatus) {
     int start = getCursor();
     while (hasMore() && isNumberPart(getCurrent()))
       advance();
-    return tokenFactory.newNumber(source.substring(start, getCursor()));
+    return new Token(Type.NUMBER, source.substring(start, getCursor()), delimStatus);
   }
 
   /**
    * Advances over the current operator;
    */
-  private T scanOperator() {
+  private Token scanOperator(DelimiterStatus delimStatus) {
     int start = getCursor();
     while (hasMore() && isOperatorPart(getCurrent()))
       advance();
-    return tokenFactory.newOperator(source.substring(start, getCursor()));
+    return new Token(Type.OPERATOR, source.substring(start, getCursor()), delimStatus);
   }
 
   /**
    * Advances over the current named operator.
    */
-  private T scanNamedOperator() {
+  private Token scanNamedOperator(DelimiterStatus delimStatus) {
     Assert.equals('.', getCurrent());
     advance();
     int start = getCursor();
     while (hasMore() && isWordPart(getCurrent()))
       advance();
-    return tokenFactory.newOperator(source.substring(start, getCursor()));
+    return new Token(Type.OPERATOR, source.substring(start, getCursor()), delimStatus);
   }
-  
+
   /**
    * Advances over the current string.
    */
-  private T scanString() {
+  private Token scanString(DelimiterStatus delimStatus) {
     Assert.equals('"', getCurrent());
     advance();
     int start = getCursor();
@@ -308,14 +267,14 @@ public class Tokenizer<T> {
       advance();
     if (hasMore())
       advance();
-    return tokenFactory.newString(source.substring(start, getCursor() - 1));
+    return new Token(Type.STRING, source.substring(start, getCursor() - 1), delimStatus);
   }
-  
+
   /**
    * Returns the tokens of the string held by this tokenizer.
    */
-  private List<T> tokenize() {
-    List<T> tokens = Factory.newArrayList();
+  private List<Token> tokenize() {
+    List<Token> tokens = Factory.newArrayList();
     while (hasMore())
       tokens.add(scanNext());
     return tokens;
@@ -324,8 +283,8 @@ public class Tokenizer<T> {
   /**
    * Returns the tokens of the given input string.
    */
-  public static <T extends IToken> List<T> tokenize(String source, ITokenFactory<T> tokenFactory) {
-    return new Tokenizer<T>(new StringCharStream(source), tokenFactory).tokenize();
+  public static List<Token> tokenize(String source) {
+    return new Tokenizer(new StringCharStream(source)).tokenize();
   }
 
 }

@@ -3,136 +3,166 @@ package org.ne.utrino.syntax;
 import java.util.Objects;
 
 import org.ne.utrino.util.Assert;
+import org.ne.utrino.util.Name;
 
 /**
  * A single token within some source code.
  */
-public class Token implements IToken {
+public class Token {
+
+  /**
+   * The flavor of a token -- for instance space and punctuation, of
+   * which there are multiple types but all share various properties.
+   */
+  public enum Flavor {
+    ETHER,
+    PUNCTUATION,
+    OTHER
+  }
+
+  /**
+   * The different classes of tokens.
+   */
+  public enum Type {
+
+    WORD      (null, "word",        Flavor.OTHER),
+    KEYWORD   (null, "keyword",     Flavor.OTHER),
+    STRING    (null, "string",      Flavor.OTHER),
+    OPERATOR  (null, "operator",    Flavor.OTHER),
+    ERROR     (null, "error",       Flavor.OTHER),
+    EOF       (null, "eof",         Flavor.OTHER),
+    NUMBER    (null, "number",      Flavor.OTHER),
+    IDENTIFIER(null, "identifier",  Flavor.OTHER),
+    LPAREN    ("(",  "punctuation", Flavor.PUNCTUATION),
+    RPAREN    (")",  "punctuation", Flavor.PUNCTUATION),
+    LBRACK    ("[",  "punctuation", Flavor.PUNCTUATION),
+    RBRACK    ("]",  "punctuation", Flavor.PUNCTUATION),
+    LBRACE    ("{",  "punctuation", Flavor.PUNCTUATION),
+    RBRACE    ("}",  "punctuation", Flavor.PUNCTUATION),
+    SEMI      (";",  "punctuation", Flavor.PUNCTUATION),
+    COMMA     (",",  "punctuation", Flavor.PUNCTUATION),
+    HASH      ("#",  "punctuation", Flavor.PUNCTUATION),
+    AT        ("@",  "punctuation", Flavor.PUNCTUATION);
+
+    private final Flavor flavor;
+    private final String value;
+    private final String category;
+
+    private Type(String value, String category, Flavor flavor) {
+      this.flavor = flavor;
+      this.value = value;
+      this.category = category;
+    }
+
+    @Override
+    public String toString() {
+      return this.value;
+    }
+
+    public String getCategory() {
+      return this.category;
+    }
+
+    public Flavor getFlavor() {
+      return this.flavor;
+    }
+
+    public boolean isPunctuation() {
+      return getFlavor() == Flavor.PUNCTUATION;
+    }
+
+  }
+
+  /**
+   * How a token behaves when considered as a delimiter.
+   */
+  public enum DelimiterStatus {
+
+    /**
+     * This token is not a delimiter in any way.
+     */
+    NONE(false, false),
+
+    /**
+     * This token can be an implicit delimiter but is not a delimiter in itself.
+     */
+    IMPLICIT(true, false),
+
+    /**
+     * This token functions only as a delimiter.
+     */
+    EXPLICIT(true, true);
+
+    private final boolean isDelimiter;
+    private final boolean isExplicit;
+
+    private DelimiterStatus(boolean isDelimiter, boolean isExplicit) {
+      this.isDelimiter = isDelimiter;
+      this.isExplicit = isExplicit;
+    }
+
+    /**
+     * Does this token function as a delimiter?
+     */
+    public boolean isDelimiter() {
+      return this.isDelimiter;
+    }
+
+    /**
+     * Is this token's function only to be a delimiter?
+     */
+    public boolean isExplicit() {
+      return this.isExplicit;
+    }
+
+  }
 
   private final Type type;
   private final String value;
+  private final DelimiterStatus delimStatus;
 
-  protected Token(Type type, String value) {
+  protected Token(Type type, String value, DelimiterStatus delimStatus) {
     Assert.that(value == null || value.length() > 0);
     this.type = type;
     this.value = value;
+    this.delimStatus = delimStatus;
   }
 
   public String getCategory() {
     return type.getCategory();
   }
 
-  @Override
+  public DelimiterStatus getDelimiterStatus() {
+    return this.delimStatus;
+  }
+
   public boolean is(Type type) {
     return this.type == type;
   }
 
-  @Override
   public boolean is(Flavor flavor) {
     return this.type.getFlavor() == flavor;
   }
 
-  @Override
   public Type getType() {
     return this.type;
   }
 
-  @Override
   public String getValue() {
     return this.value;
   }
 
-  /**
-   * Supertype for token factories that return the same type of token
-   * for all calls, just with different arguments.
-   */
-  protected static abstract class AbstractFactory<T extends Token> implements ITokenFactory<T> {
+  public Name getName() {
+    throw new UnsupportedOperationException();
+  }
 
-    /**
-     * Subclasses can implement this to define how a token is constructed
-     * independent of its type.
-     */
-    protected abstract T newToken(Type type, String value);
+  public boolean isDynamic() {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public T newSpace(String value) {
-      return newToken(Type.SPACE, value);
-    }
-
-    @Override
-    public T newNewline(char value) {
-      Assert.that(Tokenizer.isNewline(value));
-      return newToken(Type.NEWLINE, Character.toString(value));
-    }
-
-    @Override
-    public T newComment(String value) {
-      return newToken(Type.COMMENT, value);
-    }
-    
-    @Override
-    public T newString(String value) {
-      return newToken(Type.STRING, value);
-    }
-
-    @Override
-    public T newWord(String value) {
-      return newToken(Type.WORD, value);
-    }
-    
-    @Override
-    public T newKeyword(String value) {
-      return newToken(Type.KEYWORD, value);
-    }
-
-    @Override
-    public T newIdentifier(String value) {
-      return newToken(Type.IDENTIFIER, value);
-    }
-
-    @Override
-    public T newNumber(String value) {
-      return newToken(Type.NUMBER, value);
-    }
-
-    @Override
-    public T newOperator(String value) {
-      return newToken(Type.OPERATOR, value);
-    }
-
-    @Override
-    public T newError(char value) {
-      return newToken(Type.ERROR, Character.toString(value));
-    }
-
-    @Override
-    public T newEof() {
-      return newToken(Type.EOF, null);
-    }
-
-    @Override
-    public T newPunctuation(Type type) {
-      Assert.that(type.isPunctuation());
-      return newToken(type, type.toString());
-    }
-
-  };
-
-  /**
-   * Singleton token factory.
-   */
-  private static final ITokenFactory<Token> FACTORY = new AbstractFactory<Token>() {
-    @Override
-    protected Token newToken(Type type, String value) {
-      return new Token(type, value);
-    }
-  };
-
-  /**
-   * Returns the singleton token factory.
-   */
-  public static ITokenFactory<Token> getFactory() {
-    return FACTORY;
+  public static Token newPunctuation(Type type, DelimiterStatus delimStatus) {
+    Assert.that(type.isPunctuation());
+    return new Token(type, type.toString(), delimStatus);
   }
 
   @Override
@@ -151,7 +181,8 @@ public class Token implements IToken {
       if (that.type != this.type) {
         return false;
       } else {
-        return Objects.equals(this.value, that.value);
+        return Objects.equals(this.value, that.value) &&
+               (this.delimStatus == that.delimStatus);
       }
     }
   }
@@ -159,6 +190,29 @@ public class Token implements IToken {
   @Override
   public String toString() {
     return type.name() + "(" + this.value + ")";
+  }
+
+  public static class NameToken extends Token {
+
+    private final boolean isDynamic;
+    private final Name name;
+
+    public NameToken(String value, DelimiterStatus delimStatus, boolean isDynamic, Name name) {
+      super(Type.IDENTIFIER, value, delimStatus);
+      this.isDynamic = isDynamic;
+      this.name = name;
+    }
+
+    @Override
+    public Name getName() {
+      return this.name;
+    }
+
+    @Override
+    public boolean isDynamic() {
+      return this.isDynamic;
+    }
+
   }
 
 }

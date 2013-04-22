@@ -3,16 +3,16 @@ package org.ne.utrino.syntax;
  * Exception that signals a syntax error.
  */
 @SuppressWarnings("serial")
-public class SyntaxError extends Exception {
+public class SyntaxError extends RuntimeException {
 
-  private final IToken token;
+  private final Token token;
 
-  public SyntaxError(IToken token) {
+  public SyntaxError(Token token) {
     super(token.toString());
     this.token = token;
   }
 
-  public IToken getToken() {
+  public Token getToken() {
     return token;
   }
 
