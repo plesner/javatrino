@@ -65,7 +65,7 @@ public class TokenizerTest extends TestCase {
   }
 
   private Token kw(String string) {
-    return new Token(Type.KEYWORD, string, DelimiterStatus.NONE);
+    return new Token(Type.TAG, string, DelimiterStatus.NONE);
   }
 
   private Token nm(String string) {

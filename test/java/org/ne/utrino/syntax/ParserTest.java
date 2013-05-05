@@ -1,5 +1,6 @@
 package org.ne.utrino.syntax;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -9,6 +10,8 @@ import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.ISymbol;
 import org.ne.utrino.ast.Literal;
 import org.ne.utrino.ast.NameDeclaration;
+import org.ne.utrino.ast.Static;
+import org.ne.utrino.ast.Unit;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.value.RInteger;
 
@@ -27,17 +30,24 @@ public class ParserTest extends TestCase {
     checkSymbol("$foo:bar:baz", dyn("foo", "bar", "baz"));
     checkSymbol("$foo:bar", dyn("foo", "bar"));
     checkSymbol("$foo", dyn("foo"));
+    checkSymbol("@foo:bar:baz", stc("foo", "bar", "baz"));
   }
 
-  private void checkDeclaration(String str, IDeclaration expected) {
+  private void checkUnit(String str, IDeclaration... expectedDecls) {
     List<Token> tokens = Tokenizer.tokenize(str);
-    IDeclaration decl = new Parser(tokens).parseDeclaration();
-    assertEquals(expected.toString(), decl.toString());
+    Unit result = Parser.parseUnit(tokens);
+    Unit expected = new Unit(Arrays.asList(expectedDecls));
+    assertEquals(expected.toString(), result.toString());
   }
 
   @Test
   public void testDeclaration() {
-    checkDeclaration("def $x := 4;", ndc(dyn("x"), lit(4)));
+    checkUnit("def $x := 4;", ndc(dyn("x"), lit(4)));
+    checkUnit("def $x:y:z := 4;", ndc(dyn("x", "y", "z"), lit(4)));
+    checkUnit("def @x := 4;", ndc(stc("x"), lit(4)));
+    checkUnit("def $x := 4; def $y := 5;",
+        ndc(dyn("x"), lit(4)),
+        ndc(dyn("y"), lit(5)));
   }
 
   private NameDeclaration ndc(ISymbol name, IExpression value) {
@@ -46,6 +56,10 @@ public class ParserTest extends TestCase {
 
   private Dynamic dyn(String... parts) {
     return new Dynamic(Name.of(parts));
+  }
+
+  private Static stc(String... parts) {
+    return new Static(Name.of(parts));
   }
 
   private Literal lit(int value) {

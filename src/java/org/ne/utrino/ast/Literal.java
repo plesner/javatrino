@@ -2,7 +2,9 @@ package org.ne.utrino.ast;
 
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.value.IValue;
-
+/**
+ * An expression that evaluates immediately to a literal object.
+ */
 public class Literal implements IExpression {
 
   private final IValue value;

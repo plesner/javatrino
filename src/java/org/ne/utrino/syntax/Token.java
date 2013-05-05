@@ -26,7 +26,7 @@ public class Token {
   public enum Type {
 
     WORD      (null, "word",        Flavor.OTHER),
-    KEYWORD   (null, "keyword",     Flavor.OTHER),
+    TAG       (null, "tag",     Flavor.OTHER),
     STRING    (null, "string",      Flavor.OTHER),
     OPERATOR  (null, "operator",    Flavor.OTHER),
     ERROR     (null, "error",       Flavor.OTHER),
@@ -41,8 +41,7 @@ public class Token {
     RBRACE    ("}",  "punctuation", Flavor.PUNCTUATION),
     SEMI      (";",  "punctuation", Flavor.PUNCTUATION),
     COMMA     (",",  "punctuation", Flavor.PUNCTUATION),
-    HASH      ("#",  "punctuation", Flavor.PUNCTUATION),
-    AT        ("@",  "punctuation", Flavor.PUNCTUATION);
+    HASH      ("#",  "punctuation", Flavor.PUNCTUATION);
 
     private final Flavor flavor;
     private final String value;

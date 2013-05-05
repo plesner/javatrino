@@ -11,6 +11,11 @@ public class Dynamic implements ISymbol {
   }
 
   @Override
+  public Era getEra() {
+    return Era.CURRENT;
+  }
+
+  @Override
   public String toString() {
     return "$" + name.toString();
   }

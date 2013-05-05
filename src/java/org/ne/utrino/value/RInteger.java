@@ -1,6 +1,8 @@
 package org.ne.utrino.value;
-
-public class RInteger implements IValue {
+/**
+ * A 32-bit fixed integer.
+ */
+public class RInteger extends RObject {
 
   private final int value;
 
@@ -11,6 +13,23 @@ public class RInteger implements IValue {
   @Override
   public String toString() {
     return Integer.toString(value);
+  }
+
+  @Override
+  public Phase getPhase() {
+    return Phase.DEEP_IMMUTABLE;
+  }
+
+  @Override
+  public int objectHashCode() {
+    return this.value;
+  }
+
+  @Override
+  public boolean objectEquals(IValue obj) {
+    return (obj instanceof RInteger)
+        ? ((RInteger) obj).value == value
+        : false;
   }
 
 }

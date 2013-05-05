@@ -10,6 +10,7 @@ import org.ne.utrino.ast.Literal;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
+import org.ne.utrino.syntax.Token.DelimiterStatus;
 import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
@@ -90,6 +91,13 @@ public class Parser {
     expectWord(DEF_WORD);
     ISymbol name = parseSymbol();
     IExpression value = parseDeclarationTail();
+    if (hasMore()) {
+      DelimiterStatus status = getCurrent().getDelimiterStatus();
+      if (!status.isDelimiter())
+        throw newSyntaxError();
+      if (status.isExplicit())
+        advance();
+    }
     return new NameDeclaration(name, value);
   }
 
@@ -106,6 +114,7 @@ public class Parser {
     switch (getCurrent().getType()) {
     case NUMBER: {
       int value = Integer.parseInt(getCurrent().getValue());
+      advance();
       return new Literal(new RInteger(value));
     }
     default:

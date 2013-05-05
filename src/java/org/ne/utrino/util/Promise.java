@@ -1,6 +1,9 @@
 package org.ne.utrino.util;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * A deferred value.
@@ -13,10 +16,15 @@ public class Promise<T> {
     SUCCEEDED
   }
 
+  private final Executor callbackExecutor;
   private State state = State.EMPTY;
   private T value;
   private Throwable error;
   private List<ICallback<? super T>> callbacks;
+
+  private Promise(Executor callbackExecutor) {
+    this.callbackExecutor = callbackExecutor;
+  }
 
   /**
    * Sets the value of this promise. If it has already been resolved
@@ -72,6 +80,72 @@ public class Promise<T> {
   }
 
   /**
+   * Utility that keeps track of state while joining promises.
+   */
+  private static class Joiner<T> {
+
+    private final T[] values;
+    private Promise<List<T>> result;
+    private int remaining;
+
+    public Joiner(Promise<List<T>> result, int count) {
+      this.result = result;
+      this.values = (T[]) new Object[count];
+      this.remaining = count;
+    }
+
+    private void onSuccess(int index, T value) {
+      if (result == null)
+        return;
+      values[index] = value;
+      remaining--;
+      if (remaining == 0) {
+        result.fulfill(Arrays.asList(values));
+        result = null;
+      }
+    }
+
+    private void onFailure(int index, Throwable error) {
+      if (result == null)
+        return;
+      result.fail(error);
+      result = null;
+    }
+
+    /**
+     * Returns a callback that is suitable for handling the resolution of the
+     * index'th promise being joined.
+     */
+    public ICallback<T> getResolver(final int index) {
+      return new ICallback<T>() {
+        @Override
+        public void onSuccess(T value) {
+          Joiner.this.onSuccess(index, value);
+        }
+        @Override
+        public void onFailure(Throwable error) {
+          Joiner.this.onFailure(index, error);
+        }
+      };
+    }
+
+  }
+
+  /**
+   * Returns a new promise that resolves when all the given promises have
+   * resolved, and whose value will be a list of the values of those promises.
+   */
+  public static <T> Promise<List<T>> join(Promise<T>... promises) {
+    if (promises.length == 0)
+      return Promise.of(Collections.<T>emptyList());
+    Promise<List<T>> result = Promise.newEmpty();
+    Joiner<T> joiner = new Joiner<T>(result, promises.length);
+    for (int i = 0; i < promises.length; i++)
+      promises[i].onResolved(joiner.getResolver(i));
+    return result;
+  }
+
+  /**
    * Clears and fires the list of callbacks.
    */
   private void firePendingCallbacks() {
@@ -87,20 +161,36 @@ public class Promise<T> {
   /**
    * Fires a single callback.
    */
-  private void fireCallback(ICallback<? super T> callback) {
+  private void fireCallback(final ICallback<? super T> callback) {
     if (state == State.SUCCEEDED) {
-      callback.onSuccess(value);
+      callbackExecutor.execute(new Runnable() {
+        public void run() {
+          callback.onSuccess(value);
+        }
+      });
     } else {
-      callback.onFailure(error);
+      callbackExecutor.execute(new Runnable() {
+        public void run() {
+          callback.onFailure(error);
+        }
+      });
     }
   }
 
   /**
    * Creates a new empty promise.
    */
-  public static <T> Promise<T> newEmpty() {
-    return new Promise<T>();
+  public static <T> Promise<T> newEmpty(Executor callbackExecutor) {
+    return new Promise<T>(callbackExecutor);
   }
+
+  /**
+   * Creates a new empty promise.
+   */
+  public static <T> Promise<T> newEmpty() {
+    return new Promise<T>(Executors.sameThread());
+  }
+
 
   /**
    * Returns the value of this promise, failing if it has not succeeded.

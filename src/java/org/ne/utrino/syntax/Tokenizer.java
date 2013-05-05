@@ -141,7 +141,7 @@ public class Tokenizer {
       result = scanOperator(delimStatus);
     } else {
       switch (getCurrent()) {
-      case '$':
+      case '$': case '@':
         result = scanIdentifier(delimStatus);
         break;
       case '.':
@@ -183,10 +183,6 @@ public class Tokenizer {
         result = Token.newPunctuation(Type.COMMA, delimStatus);
         advance();
         break;
-      case '@':
-        result = Token.newPunctuation(Type.AT, delimStatus);
-        advance();
-        break;
       default:
         result = new Token(Type.ERROR, Character.toString(getCurrent()),
             DelimiterStatus.NONE);
@@ -208,20 +204,21 @@ public class Tokenizer {
     if (hasMore() && getCurrent() == ':') {
       int end = getCursor();
       advance();
-      return new Token(Type.KEYWORD, source.substring(start, end), delimStatus);
+      return new Token(Type.TAG, source.substring(start, end), delimStatus);
     } else {
       return new Token(Type.WORD, source.substring(start, getCursor()), delimStatus);
     }
   }
 
   private Token scanIdentifier(DelimiterStatus delimStatus) {
-    Assert.equals('$', getCurrent());
+    boolean isDynamic = (getCurrent() == '$');
     int start = getCursor();
     advance();
     while (hasMore() && (isWordPart(getCurrent()) || (getCurrent() == ':')))
       advance();
     String value = source.substring(start, getCursor());
-    return new Token.NameToken(value, delimStatus, true, Name.of(value.substring(1).split(":")));
+    return new Token.NameToken(value, delimStatus, isDynamic,
+        Name.of(value.substring(1).split(":")));
   }
 
   /**
