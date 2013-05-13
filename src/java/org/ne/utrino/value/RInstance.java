@@ -2,23 +2,19 @@ package org.ne.utrino.value;
 
 import java.util.Objects;
 
-
 /**
- * An object which has already been built but which can still be mutable or
- * immutable.
+ * A custom object instance that starts out being under construction.
  */
-public abstract class RBuiltObject extends RObject {
+public class RInstance extends RObject {
 
-  private Phase phase = Phase.MUTABLE;
+  private Phase phase = Phase.BUILDING;
+  private Species desc;
 
   @Override
   public Phase getPhase() {
-    return this.phase;
+    return phase;
   }
 
-  /**
-   * Advances the phase of this object to the given phase.
-   */
   @Override
   public boolean trySetPhase(Phase phase) {
     if (getPhase().allowPhaseChange(phase)) {
@@ -36,7 +32,7 @@ public abstract class RBuiltObject extends RObject {
 
   @Override
   public boolean objectEquals(IValue obj) {
-    return (this == obj);
+    return this == obj;
   }
 
 }

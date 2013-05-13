@@ -2,14 +2,14 @@ package org.ne.utrino.value;
 
 import java.util.Objects;
 
-public class RNull extends RDeepImmutable {
+import org.ne.utrino.runtime.Signature;
 
-  private static final RNull INSTANCE = new RNull();
+public class RMethod extends RDeepImmutable {
 
-  private RNull() { }
+  private final Signature signature;
 
-  public static RNull get() {
-    return INSTANCE;
+  public RMethod(Signature signature) {
+    this.signature = signature;
   }
 
   @Override

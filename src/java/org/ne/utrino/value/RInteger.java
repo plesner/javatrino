@@ -2,7 +2,7 @@ package org.ne.utrino.value;
 /**
  * A 32-bit fixed integer.
  */
-public class RInteger extends RObject {
+public class RInteger extends RDeepImmutable implements ITagValue {
 
   private final int value;
 
@@ -16,11 +16,6 @@ public class RInteger extends RObject {
   }
 
   @Override
-  public Phase getPhase() {
-    return Phase.DEEP_IMMUTABLE;
-  }
-
-  @Override
   public int objectHashCode() {
     return this.value;
   }
@@ -30,6 +25,31 @@ public class RInteger extends RObject {
     return (obj instanceof RInteger)
         ? ((RInteger) obj).value == value
         : false;
+  }
+
+  @Override
+  public boolean isIdentical(IValue other) {
+    return this.equals(other);
+  }
+
+  @Override
+  public Flavor getFlavor() {
+    return Flavor.INTEGER;
+  }
+
+  @Override
+  public int compareTo(ITagValue that) {
+    Flavor thatFlavor = that.getFlavor();
+    if (thatFlavor != Flavor.INTEGER)
+      return Flavor.INTEGER.compareTo(thatFlavor);
+    return Integer.compare(this.value, ((RInteger) that).value);
+  }
+
+  /**
+   * Returns a new integer with the given value.
+   */
+  public static RInteger newInt(int value) {
+    return new RInteger(value);
   }
 
 }

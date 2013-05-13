@@ -27,7 +27,7 @@ public class RPromise<T extends IValue> extends RBuiltObject {
     Assert.that(this.getPhase().isMutable());
     this.value = value;
     this.state = State.SUCCESS;
-    this.setPhase(Phase.SHALLOW_IMMUTABLE);
+    this.trySetPhase(Phase.SHALLOW_IMMUTABLE);
   }
 
   /**

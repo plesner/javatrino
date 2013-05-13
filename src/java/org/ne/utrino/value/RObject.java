@@ -28,4 +28,9 @@ public abstract class RObject implements IValue {
     }
   }
 
+  @Override
+  public boolean isIdentical(IValue other) {
+    return this == other;
+  }
+
 }
