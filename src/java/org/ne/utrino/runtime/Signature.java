@@ -3,7 +3,9 @@ package org.ne.utrino.runtime;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
+import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.IValue;
@@ -32,6 +34,11 @@ public class Signature {
     @Override
     public int compareTo(Entry that) {
       return this.tag.compareTo(that.tag);
+    }
+
+    @Override
+    public String toString() {
+      return tag + "/" + index + ": " + guard;
     }
 
   }
@@ -101,6 +108,51 @@ public class Signature {
 
   }
 
+  /**
+   * The status of a match -- whether it succeeded and if not why.
+   */
+  public enum MatchResult {
+
+    /**
+     * There was an argument we didn't expect.
+     */
+    UNEXPECTED_ARGUMENT(false),
+
+    /**
+     * Multiple arguments were passed for the same parameter.
+     */
+    REDUNDANT_ARGUMENT(false),
+
+    /**
+     * This signature expected more arguments than were passed.
+     */
+    MISSING_ARGUMENTS(false),
+
+    /**
+     * A guard rejected an argument.
+     */
+    GUARD_REJECTED(false),
+
+    /**
+     * The invocation matched.
+     */
+    MATCH(true);
+
+    private final boolean didMatch;
+
+    private MatchResult(boolean didMatch) {
+      this.didMatch = didMatch;
+    }
+
+    /**
+     * Does this status signify that the match was successful?
+     */
+    public boolean didMatch() {
+      return this.didMatch;
+    }
+
+  }
+
   private final List<ITagValue> tags;
   private final List<Entry> entries;
   private final int paramCount;
@@ -131,44 +183,29 @@ public class Signature {
   }
 
   /**
-   * The status of a match -- whether it succeeded and if not why.
+   * Returns the number of distinct parameters, for each of which there may be
+   * multiple matching tags.
    */
-  public enum MatchResult {
-
-    /**
-     * There was an argument we didn't expect.
-     */
-    UNEXPECTED_ARGUMENT,
-
-    /**
-     * Multiple arguments were passed for the same parameter.
-     */
-    REDUNDANT_ARGUMENT,
-
-    /**
-     * This signature expected more arguments than were passed.
-     */
-    MISSING_ARGUMENTS,
-
-    /**
-     * A guard rejected an argument.
-     */
-    GUARD_REJECTED,
-
-    /**
-     * The invocation matched.
-     */
-    MATCH
-
+  public int getParameterCount() {
+    return this.paramCount;
   }
 
   /**
-   * Matches the given invocation against this signature.
+   * Matches the given invocation against this signature. You should not base
+   * behavior on the exact failure type returned since there can be multiple
+   * failures and the choice of which one gets returned is arbitrary.
+   *
+   * The scores array must be long enough to hold a score for each argument
+   * in the invocation. If the match succeeds it holds the scores, if it fails
+   * the state is unspecified.
    */
-  public MatchResult match(IInvocation record) {
+  public MatchResult match(IInvocation record, IHierarchy hierarchy, int[] scores) {
     int recordEntryCount = record.getEntryCount();
-    BitSet argsSeen = new BitSet(paramCount);
+    Assert.that(scores.length >= recordEntryCount);
+    BitSet paramsSeen = new BitSet(paramCount);
     int argsSeenCount = 0;
+    for (int i = 0; i < recordEntryCount; i++)
+      scores[i] = Guard.NO_MATCH;
     // Scan through the arguments and look them up in the signature.
     for (int i = 0; i < recordEntryCount; i++) {
       ITagValue tag = record.getTag(i);
@@ -179,16 +216,17 @@ public class Signature {
         return MatchResult.UNEXPECTED_ARGUMENT;
       }
       Entry entry = entries.get(entryIndex);
-      if (argsSeen.get(entry.index)) {
+      if (paramsSeen.get(entry.index)) {
         // We've seen this entry before; fail.
         return MatchResult.REDUNDANT_ARGUMENT;
-      } else if (Guard.isMatch(entry.guard.match(value))) {
-        // The guard matches, keep going.
-        argsSeen.set(entry.index);
-        argsSeenCount++;
-      } else {
-        // The guard rejected; fail.
+      }
+      int score = entry.guard.match(value, hierarchy);
+      if (!Guard.isMatch(score)) {
         return MatchResult.GUARD_REJECTED;
+      } else {
+        paramsSeen.set(entry.index);
+        scores[i] = score;
+        argsSeenCount++;
       }
     }
     if (argsSeenCount < paramCount) {
@@ -198,6 +236,11 @@ public class Signature {
       // We saw all parameters and their guards approved. Match!
       return MatchResult.MATCH;
     }
+  }
+
+  @Override
+  public String toString() {
+    return Objects.toString(this.entries);
   }
 
 }

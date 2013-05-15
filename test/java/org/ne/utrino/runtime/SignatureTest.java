@@ -3,15 +3,16 @@ package org.ne.utrino.runtime;
 import static org.ne.utrino.runtime.Signature.MatchResult.GUARD_REJECTED;
 import static org.ne.utrino.runtime.Signature.MatchResult.MATCH;
 import static org.ne.utrino.runtime.Signature.MatchResult.MISSING_ARGUMENTS;
+import static org.ne.utrino.runtime.Signature.MatchResult.REDUNDANT_ARGUMENT;
 import static org.ne.utrino.runtime.Signature.MatchResult.UNEXPECTED_ARGUMENT;
-import static org.ne.utrino.testing.TestFactory.toTag;
+import static org.ne.utrino.testing.TestFactory.arg;
+import static org.ne.utrino.testing.TestFactory.newInvocation;
+import static org.ne.utrino.testing.TestFactory.newSignature;
+import static org.ne.utrino.testing.TestFactory.param;
 import static org.ne.utrino.testing.TestFactory.toValue;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import org.junit.Test;
+import org.ne.utrino.runtime.Signature.MatchResult;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.IValue;
@@ -20,78 +21,42 @@ import junit.framework.TestCase;
 
 public class SignatureTest extends TestCase {
 
-  /**
-   * Creates a tagged parameter.
-   */
-  private static Signature.ParameterBuilder newParam(Guard guard, Object... tags) {
-    Signature.ParameterBuilder builder = new Signature.ParameterBuilder(guard);
-    for (Object tag : tags)
-      builder.addTag(toTag(tag));
-    return builder;
-  }
-
-  /**
-   * Combines a set of parameters into a signature.
-   */
-  private static Signature newSig(Signature.ParameterBuilder... params) {
-    Signature.Builder builder = Signature.newBuilder();
-    for (Signature.ParameterBuilder param : params)
-      builder.addParameter(param);
-    return builder.build();
-  }
-
-  /**
-   * Creates an argument pair.
-   */
-  private static Pair<ITagValue, IValue> a(Object tag, Object value) {
-    return Pair.of(toTag(tag), toValue(value));
-  }
-
-  /**
-   * Creates an invocation from alternating tags and values.
-   */
   @SafeVarargs
-  private static IInvocation newInvoke(Pair<ITagValue, IValue>... pairs) {
-    final List<Pair<ITagValue, IValue>> args = Arrays.asList(pairs);
-    Collections.sort(args, Pair.<ITagValue, IValue>firstComparator());
-    return new IInvocation() {
-      @Override
-      public IValue getValue(int index) {
-        return args.get(index).getSecond();
-      }
-      @Override
-      public ITagValue getTag(int index) {
-        return args.get(index).getFirst();
-      }
-      @Override
-      public int getEntryCount() {
-        return args.size();
-      }
-    };
+  public static void assertMatch(MatchResult expected, Signature sig,
+      Pair<ITagValue, IValue>... pairs) {
+    assertEquals(expected, sig.match(newInvocation(pairs), null, new int[pairs.length]));
   }
 
   @Test
   public void testSimpleMatching() {
-    Signature sig = newSig(
-        newParam(Guard.any(), 0),
-        newParam(Guard.any(), 1));
-    assertEquals(MATCH, sig.match(newInvoke(a(0, "foo"), a(1, "bar"))));
-    assertEquals(UNEXPECTED_ARGUMENT, sig.match(newInvoke(a(0, "foo"), a(1, "bar"),
-        a(2, "baz"))));
-    assertEquals(MISSING_ARGUMENTS, sig.match(newInvoke(a(0, "foo"))));
-    assertEquals(MISSING_ARGUMENTS, sig.match(newInvoke(a(1, "bar"))));
-    assertEquals(UNEXPECTED_ARGUMENT, sig.match(newInvoke(a(2, "baz"))));
-    assertEquals(MISSING_ARGUMENTS, sig.match(newInvoke()));
+    Signature sig = newSignature(param(Guard.any(), 0), param(Guard.any(), 1));
+    assertMatch(MATCH, sig, arg(0, "foo"), arg(1, "bar"));
+    assertMatch(UNEXPECTED_ARGUMENT, sig, arg(0, "foo"), arg(1, "bar"), arg(2, "baz"));
+    assertMatch(MISSING_ARGUMENTS, sig, arg(0, "foo"));
+    assertMatch(MISSING_ARGUMENTS, sig, arg(1, "bar"));
+    assertMatch(UNEXPECTED_ARGUMENT, sig, arg(2, "baz"));
+    assertMatch(MISSING_ARGUMENTS, sig);
   }
 
   @Test
   public void testSimpleGuardMatching() {
-    Signature sig = newSig(
-        newParam(Guard.identity(toValue("foo")), 0),
-        newParam(Guard.any(), 1));
-    assertEquals(MATCH, sig.match(newInvoke(a(0, "foo"), a(1, "bar"))));
-    assertEquals(MATCH, sig.match(newInvoke(a(0, "foo"), a(1, "boo"))));
-    assertEquals(GUARD_REJECTED, sig.match(newInvoke(a(0, "fop"), a(1, "boo"))));
+    Signature sig = newSignature(
+        param(Guard.identity(toValue("foo")), 0),
+        param(Guard.any(), 1));
+    assertMatch(MATCH, sig, arg(0, "foo"), arg(1, "bar"));
+    assertMatch(MATCH, sig, arg(0, "foo"), arg(1, "boo"));
+    assertMatch(GUARD_REJECTED, sig, arg(0, "fop"), arg(1, "boo"));
+  }
+
+  @Test
+  public void testMultiTagMatching() {
+    Signature sig = newSignature(param(Guard.any(), 0, "x"), param(Guard.any(), 1, "y"));
+    assertMatch(MATCH, sig, arg(0, "foo"), arg(1, "bar"));
+    assertMatch(MATCH, sig, arg(0, "foo"), arg("y", "bar"));
+    assertMatch(MATCH, sig, arg(1, "bar"), arg("x", "foo"));
+    assertMatch(MATCH, sig, arg("x", "foo"), arg("y", "bar"));
+    assertMatch(REDUNDANT_ARGUMENT, sig, arg(0, "foo"), arg("x", "foo"));
+    assertMatch(REDUNDANT_ARGUMENT, sig, arg(1, "foo"), arg("y", "foo"));
   }
 
 }

@@ -4,6 +4,9 @@ package org.ne.utrino.value;
  */
 public class RInteger extends RDeepImmutable implements ITagValue {
 
+  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final Species SPECIES = new Species(PROTOCOL);
+
   private final int value;
 
   public RInteger(int value) {
@@ -16,7 +19,7 @@ public class RInteger extends RDeepImmutable implements ITagValue {
   }
 
   @Override
-  public int objectHashCode() {
+  public int hashCode() {
     return this.value;
   }
 
@@ -50,6 +53,15 @@ public class RInteger extends RDeepImmutable implements ITagValue {
    */
   public static RInteger newInt(int value) {
     return new RInteger(value);
+  }
+
+  @Override
+  public Species getSpecies() {
+    return SPECIES;
+  }
+
+  public static RProtocol getProtocol() {
+    return PROTOCOL;
   }
 
 }

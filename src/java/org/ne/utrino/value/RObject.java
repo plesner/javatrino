@@ -4,20 +4,12 @@ package org.ne.utrino.value;
  */
 public abstract class RObject implements IValue {
 
-  /**
-   * Calculates this object's local hash code.
-   */
-  public abstract int objectHashCode();
+  private static final RProtocol PROTOCOL = new RProtocol();
 
   /**
    * Is this object equal to the given one?
    */
   public abstract boolean objectEquals(IValue obj);
-
-  @Override
-  public final int hashCode() {
-    return this.objectHashCode();
-  }
 
   @Override
   public final boolean equals(Object obj) {
@@ -31,6 +23,10 @@ public abstract class RObject implements IValue {
   @Override
   public boolean isIdentical(IValue other) {
     return this == other;
+  }
+
+  public static RProtocol getProtocol() {
+    return PROTOCOL;
   }
 
 }

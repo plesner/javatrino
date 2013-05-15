@@ -9,6 +9,9 @@ import org.ne.utrino.util.Factory;
  */
 public class RSpace extends RBuiltObject {
 
+  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final Species SPECIES = new Species(PROTOCOL);
+
   private final Map<IValue, IValue> namespace = Factory.newHashMap();
 
   /**
@@ -17,6 +20,11 @@ public class RSpace extends RBuiltObject {
   public void set(IValue key, IValue value) {
     Assert.that(this.getPhase().isMutable());
     namespace.put(key, value);
+  }
+
+  @Override
+  public Species getSpecies() {
+    return SPECIES;
   }
 
 }

@@ -1,10 +1,11 @@
 package org.ne.utrino.value;
 
-import java.util.Objects;
-
 import org.ne.utrino.runtime.Signature;
 
 public class RMethod extends RDeepImmutable {
+
+  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final Species SPECIES = new Species(PROTOCOL);
 
   private final Signature signature;
 
@@ -13,13 +14,20 @@ public class RMethod extends RDeepImmutable {
   }
 
   @Override
-  public int objectHashCode() {
-    return Objects.hashCode(this);
+  public boolean objectEquals(IValue obj) {
+    return this == obj;
   }
 
   @Override
-  public boolean objectEquals(IValue obj) {
-    return this == obj;
+  public Species getSpecies() {
+    return SPECIES;
+  }
+
+  /**
+   * Returns this method's signature.
+   */
+  public Signature getSignature() {
+    return this.signature;
   }
 
 }

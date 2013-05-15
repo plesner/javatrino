@@ -1,5 +1,7 @@
 package org.ne.utrino.value;
 
+import org.ne.utrino.util.Assert;
+
 
 /**
  * A species identifies the type of an object and encapsulates meta-information
@@ -12,11 +14,11 @@ public class Species {
   private final RProtocol primary;
 
   /**
-   * Creates a new descriptor
+   * Creates a new species
    * @param protocols
    */
   public Species(RProtocol primary) {
-    this.primary = primary;
+    this.primary = Assert.notNull(primary);
   }
 
   /**

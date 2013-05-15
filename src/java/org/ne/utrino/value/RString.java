@@ -5,6 +5,9 @@ import org.ne.utrino.util.Assert;
 
 public class RString extends RDeepImmutable implements ITagValue {
 
+  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final Species SPECIES = new Species(PROTOCOL);
+
   private final String value;
 
   public RString(String value) {
@@ -25,7 +28,7 @@ public class RString extends RDeepImmutable implements ITagValue {
   }
 
   @Override
-  public int objectHashCode() {
+  public int hashCode() {
     return this.value.hashCode();
   }
 
@@ -39,6 +42,15 @@ public class RString extends RDeepImmutable implements ITagValue {
   @Override
   public boolean isIdentical(IValue other) {
     return this.equals(other);
+  }
+
+  @Override
+  public Species getSpecies() {
+    return SPECIES;
+  }
+
+  public static RProtocol getProtocol() {
+    return PROTOCOL;
   }
 
 }

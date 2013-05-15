@@ -20,4 +20,9 @@ public interface IValue {
    */
   public boolean isIdentical(IValue other);
 
+  /**
+   * Returns the species descriptor object for this kind of value.
+   */
+  public Species getSpecies();
+
 }

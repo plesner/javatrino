@@ -1,9 +1,10 @@
 package org.ne.utrino.value;
 
-import java.util.Objects;
 
 public class RNull extends RDeepImmutable {
 
+  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final Species SPECIES = new Species(PROTOCOL);
   private static final RNull INSTANCE = new RNull();
 
   private RNull() { }
@@ -13,13 +14,13 @@ public class RNull extends RDeepImmutable {
   }
 
   @Override
-  public int objectHashCode() {
-    return Objects.hashCode(this);
+  public boolean objectEquals(IValue obj) {
+    return this == obj;
   }
 
   @Override
-  public boolean objectEquals(IValue obj) {
-    return this == obj;
+  public Species getSpecies() {
+    return SPECIES;
   }
 
 }

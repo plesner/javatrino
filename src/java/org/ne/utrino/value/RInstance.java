@@ -1,6 +1,5 @@
 package org.ne.utrino.value;
 
-import java.util.Objects;
 
 /**
  * A custom object instance that starts out being under construction.
@@ -8,7 +7,7 @@ import java.util.Objects;
 public class RInstance extends RObject {
 
   private Phase phase = Phase.BUILDING;
-  private Species desc;
+  private Species species;
 
   @Override
   public Phase getPhase() {
@@ -26,13 +25,13 @@ public class RInstance extends RObject {
   }
 
   @Override
-  public int objectHashCode() {
-    return Objects.hashCode(this);
+  public boolean objectEquals(IValue obj) {
+    return this == obj;
   }
 
   @Override
-  public boolean objectEquals(IValue obj) {
-    return this == obj;
+  public Species getSpecies() {
+    return species;
   }
 
 }

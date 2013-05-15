@@ -1,6 +1,5 @@
 package org.ne.utrino.value;
 
-import java.util.Objects;
 /**
  * An atomic protocol object. A protocol identifies an object as supporting a
  * particular set of messages. The protocol itself doesn't know what those
@@ -8,14 +7,32 @@ import java.util.Objects;
  */
 public class RProtocol extends RDeepImmutable {
 
-  @Override
-  public int objectHashCode() {
-    return Objects.hashCode(this);
+  private static final RProtocol PROTOCOL = new RProtocol("Protocol");
+  private static final Species SPECIES = new Species(PROTOCOL);
+
+  private final String debugName;
+
+  public RProtocol(String debugName) {
+    this.debugName = debugName;
+  }
+
+  public RProtocol() {
+    this(null);
   }
 
   @Override
   public boolean objectEquals(IValue obj) {
     return this == obj;
+  }
+
+  @Override
+  public Species getSpecies() {
+    return SPECIES;
+  }
+
+  @Override
+  public String toString() {
+    return "#<protocol " + (debugName == null ? ("#" + hashCode()) : debugName) + ">";
   }
 
 }

@@ -7,6 +7,9 @@ import org.ne.utrino.util.Assert;
  */
 public class RPromise<T extends IValue> extends RBuiltObject {
 
+  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final Species SPECIES = new Species(PROTOCOL);
+
   public enum State {
     EMPTY,
     SUCCESS,
@@ -35,6 +38,11 @@ public class RPromise<T extends IValue> extends RBuiltObject {
    */
   public static <T extends IValue> RPromise<T> empty() {
     return new RPromise<T>();
+  }
+
+  @Override
+  public Species getSpecies() {
+    return SPECIES;
   }
 
 }
