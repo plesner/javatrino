@@ -83,7 +83,7 @@ public abstract class Guard {
 
     @Override
     public int match(IValue input, IHierarchy hierarchy) {
-      return WEAK_MATCH;
+      return ANY_MATCH;
     }
 
     @Override
@@ -154,16 +154,16 @@ public abstract class Guard {
   public static final int NO_MATCH = Integer.MAX_VALUE;
 
   /**
-   * The guard matches even though there are no arguments because it guards an
-   * optional argument.
+   * There was a match but only because extra arguments are allowed so anything
+   * more specific would match better.
    */
-  public static final int OPTIONAL_MATCH = NO_MATCH - 1;
+  public static final int EXTRA_MATCH = NO_MATCH - 1;
 
   /**
-   * Score that signifies that there is a match but any other, more specific,
-   * match will be considered better.
+   * The guard matched the given value but only because it matches any value so
+   * anything more specific would match better.
    */
-  private static final int WEAK_MATCH = NO_MATCH - 2;
+  public static final int ANY_MATCH = EXTRA_MATCH - 1;
 
   /**
    * This guard matched perfectly.

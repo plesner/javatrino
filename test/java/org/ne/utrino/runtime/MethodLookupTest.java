@@ -53,8 +53,8 @@ public class MethodLookupTest extends TestCase {
   }
 
   private static RMethod newMethod(Guard a, Guard b, Guard c) {
-    return new RMethod(newSignature(param(a, toTag(0)), param(b, toTag(1)),
-        param(c, toTag(2))));
+    return new RMethod(newSignature(false, param(a, false, toTag(0)),
+        param(b, false, toTag(1)), param(c, false, toTag(2))));
   }
 
   private static IInvocation newArgs(IValue a, IValue b, IValue c) {

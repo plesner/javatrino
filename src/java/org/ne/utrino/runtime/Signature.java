@@ -17,17 +17,19 @@ import org.ne.utrino.value.IValue;
 public class Signature {
 
   /**
-   * A single
+   * A single signature entry.
    */
   private static class Entry implements Comparable<Entry> {
 
     public final ITagValue tag;
     public final Guard guard;
+    public final boolean isOptional;
     public final int index;
 
-    public Entry(ITagValue tag, Guard guard, int index) {
+    public Entry(ITagValue tag, Guard guard, boolean isOptional, int index) {
       this.tag = tag;
       this.guard = guard;
+      this.isOptional = isOptional;
       this.index = index;
     }
 
@@ -66,13 +68,24 @@ public class Signature {
     public Signature build() {
       List<Entry> entries = Factory.newArrayList();
       int index = 0;
+      int mandatoryCount = 0;
       for (ParameterBuilder param : params) {
+        if (!param.isOptional)
+          mandatoryCount++;
         for (ITagValue tag : param.tags)
-          entries.add(new Entry(tag, param.guard, index));
+          entries.add(new Entry(tag, param.guard, param.isOptional, index));
         index++;
       }
       Collections.sort(entries);
-      return new Signature(params.size(), entries, allowExtra);
+      return new Signature(params.size(), mandatoryCount, entries, allowExtra);
+    }
+
+    /**
+     * Does this signature allow extra arguments to be passed?
+     */
+    public Builder setAllowExtra(boolean value) {
+      this.allowExtra = value;
+      return this;
     }
 
   }
@@ -126,7 +139,7 @@ public class Signature {
     /**
      * This signature expected more arguments than were passed.
      */
-    MISSING_ARGUMENTS(false),
+    MISSING_ARGUMENT(false),
 
     /**
      * A guard rejected an argument.
@@ -136,7 +149,12 @@ public class Signature {
     /**
      * The invocation matched.
      */
-    MATCH(true);
+    MATCH(true),
+
+    /**
+     * The invocation matched but had extra arguments which this signature allows.
+     */
+    EXTRA_MATCH(true);
 
     private final boolean didMatch;
 
@@ -155,13 +173,16 @@ public class Signature {
 
   private final List<ITagValue> tags;
   private final List<Entry> entries;
-  private final int paramCount;
+  private final int totalParamCount;
+  private final int mandatoryParamCount;
   private final boolean allowExtra;
 
-  private Signature(int paramCount, List<Entry> entries, boolean allowExtra) {
+  private Signature(int totalParamCount, int mandatoryParamCount, List<Entry> entries,
+      boolean allowExtra) {
     this.tags = buildTagList(entries);
     this.entries = entries;
-    this.paramCount = paramCount;
+    this.totalParamCount = totalParamCount;
+    this.mandatoryParamCount = mandatoryParamCount;
     this.allowExtra = allowExtra;
   }
 
@@ -187,7 +208,7 @@ public class Signature {
    * multiple matching tags.
    */
   public int getParameterCount() {
-    return this.paramCount;
+    return this.totalParamCount;
   }
 
   /**
@@ -202,8 +223,9 @@ public class Signature {
   public MatchResult match(IInvocation record, IHierarchy hierarchy, int[] scores) {
     int recordEntryCount = record.getEntryCount();
     Assert.that(scores.length >= recordEntryCount);
-    BitSet paramsSeen = new BitSet(paramCount);
-    int argsSeenCount = 0;
+    BitSet paramsSeen = new BitSet(totalParamCount);
+    int mandatoryArgsSeenCount = 0;
+    MatchResult onMatch = MatchResult.MATCH;
     for (int i = 0; i < recordEntryCount; i++)
       scores[i] = Guard.NO_MATCH;
     // Scan through the arguments and look them up in the signature.
@@ -212,8 +234,14 @@ public class Signature {
       IValue value = record.getValue(i);
       int entryIndex = Collections.binarySearch(tags, tag);
       if (entryIndex < 0) {
-        // There was no signature entry corresponding to this tag. Fail.
-        return MatchResult.UNEXPECTED_ARGUMENT;
+        if (allowExtra) {
+          onMatch = MatchResult.EXTRA_MATCH;
+          scores[i] = Guard.EXTRA_MATCH;
+          continue;
+        } else {
+          // There was no signature entry corresponding to this tag. Fail.
+          return MatchResult.UNEXPECTED_ARGUMENT;
+        }
       }
       Entry entry = entries.get(entryIndex);
       if (paramsSeen.get(entry.index)) {
@@ -226,15 +254,16 @@ public class Signature {
       } else {
         paramsSeen.set(entry.index);
         scores[i] = score;
-        argsSeenCount++;
+        if (!entry.isOptional)
+          mandatoryArgsSeenCount++;
       }
     }
-    if (argsSeenCount < paramCount) {
+    if (mandatoryArgsSeenCount < mandatoryParamCount) {
       // There are some parameters we haven't seen. Fail.
-      return MatchResult.MISSING_ARGUMENTS;
+      return MatchResult.MISSING_ARGUMENT;
     } else {
       // We saw all parameters and their guards approved. Match!
-      return MatchResult.MATCH;
+      return onMatch;
     }
   }
 

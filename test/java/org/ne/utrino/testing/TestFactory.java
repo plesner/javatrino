@@ -139,8 +139,9 @@ public class TestFactory {
   /**
    * Creates a tagged parameter.
    */
-  public static Signature.ParameterBuilder param(Guard guard, Object... tags) {
-    Signature.ParameterBuilder builder = new Signature.ParameterBuilder(guard);
+  public static Signature.ParameterBuilder param(Guard guard, boolean isOptional, Object... tags) {
+    Signature.ParameterBuilder builder = new Signature.ParameterBuilder(guard)
+        .setOptional(isOptional);
     for (Object tag : tags)
       builder.addTag(toTag(tag));
     return builder;
@@ -149,8 +150,10 @@ public class TestFactory {
   /**
    * Combines a set of parameters into a signature.
    */
-  public static Signature newSignature(Signature.ParameterBuilder... params) {
-    Signature.Builder builder = Signature.newBuilder();
+  public static Signature newSignature(boolean allowExtra, Signature.ParameterBuilder... params) {
+    Signature.Builder builder = Signature
+        .newBuilder()
+        .setAllowExtra(allowExtra);
     for (Signature.ParameterBuilder param : params)
       builder.addParameter(param);
     return builder.build();

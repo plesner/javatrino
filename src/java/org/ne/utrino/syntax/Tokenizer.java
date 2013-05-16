@@ -171,7 +171,7 @@ public class Tokenizer {
         advance();
         break;
       case '}':
-        this.nextDelimStatus = delimStatus.IMPLICIT;
+        this.nextDelimStatus = DelimiterStatus.IMPLICIT;
         result = Token.newPunctuation(Type.RBRACE, delimStatus);
         advance();
         break;

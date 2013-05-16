@@ -34,6 +34,20 @@ public class MethodLookup {
   }
 
   /**
+   * Was any matching method found?
+   */
+  public boolean foundMatch() {
+    return this.foundMatch;
+  }
+
+  /**
+   * Were matches found but no unique best?
+   */
+  public boolean isAmbiguous() {
+    return this.foundMatch && (this.result == null);
+  }
+
+  /**
    * The outcome of joining two score vectors.
    */
   public enum JoinStatus {
@@ -131,6 +145,13 @@ public class MethodLookup {
     } else {
       return sourceBetter ? JoinStatus.BETTER : JoinStatus.EQUAL;
     }
+  }
+
+  /**
+   * What's the max number of arguments this lookup will handle?
+   */
+  public int getMaxArguments() {
+    return this.maxArgCount;
   }
 
 }
