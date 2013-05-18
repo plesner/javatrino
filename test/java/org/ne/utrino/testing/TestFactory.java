@@ -15,6 +15,7 @@ import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.IValue;
+import org.ne.utrino.value.RBool;
 import org.ne.utrino.value.RInteger;
 import org.ne.utrino.value.RNull;
 import org.ne.utrino.value.RObject;
@@ -33,7 +34,7 @@ public class TestFactory {
    */
   public static ITagValue toTag(Object obj) {
     if (obj instanceof Integer) {
-      return RInteger.newInt((Integer) obj);
+      return RInteger.of((Integer) obj);
     } else if (obj instanceof String) {
       return new RString((String) obj);
     } else {
@@ -51,6 +52,8 @@ public class TestFactory {
       return (IValue) obj;
     } else if (obj == null) {
       return RNull.get();
+    } else if (obj instanceof Boolean) {
+      return RBool.of((Boolean) obj);
     } else {
       return toTag(obj);
     }

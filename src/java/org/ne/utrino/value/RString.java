@@ -40,6 +40,11 @@ public class RString extends RDeepImmutable implements ITagValue {
   }
 
   @Override
+  public String toString() {
+    return "\"" + this.value + "\"";
+  }
+
+  @Override
   public boolean isIdentical(IValue other) {
     return this.equals(other);
   }
@@ -51,6 +56,13 @@ public class RString extends RDeepImmutable implements ITagValue {
 
   public static RProtocol getProtocol() {
     return PROTOCOL;
+  }
+
+  /**
+   * Returns a new string object with the given value.
+   */
+  public static RString of(String value) {
+    return new RString(value);
   }
 
 }

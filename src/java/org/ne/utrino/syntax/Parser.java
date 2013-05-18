@@ -6,6 +6,7 @@ import org.ne.utrino.ast.Dynamic;
 import org.ne.utrino.ast.IDeclaration;
 import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.ISymbol;
+import org.ne.utrino.ast.Invocation;
 import org.ne.utrino.ast.Literal;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Static;
@@ -14,7 +15,10 @@ import org.ne.utrino.syntax.Token.DelimiterStatus;
 import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
+import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.RInteger;
+import org.ne.utrino.value.RKey;
+import org.ne.utrino.value.RString;
 
 public class Parser {
 
@@ -57,15 +61,22 @@ public class Parser {
     expect(Type.OPERATOR, value);
   }
 
-
   private boolean at(Type type) {
     return getCurrent().is(type);
   }
 
   private void expect(Type type, String value) {
-    if (!getCurrent().is(type) || !getCurrent().getValue().equals(value))
+    if (!at(type) || !getCurrent().getValue().equals(value))
       throw newSyntaxError();
     advance();
+  }
+
+  private String expectOperator() {
+    if (!at(Type.OPERATOR))
+      throw newSyntaxError();
+    String value = getCurrent().getValue();
+    advance();
+    return value;
   }
 
   private SyntaxError newSyntaxError() {
@@ -106,8 +117,21 @@ public class Parser {
     return parseExpression();
   }
 
-  private IExpression parseExpression() {
-    return parseAtomicExpression();
+  public IExpression parseOperatorExpression() {
+    IExpression left = parseAtomicExpression();
+    while (hasMore() && at(Type.OPERATOR)) {
+      String op = expectOperator();
+      IExpression right = parseAtomicExpression();
+      left = new Invocation(
+          Pair.of(RKey.THIS, left),
+          Pair.of(RKey.NAME, new Literal(RString.of(op))),
+          Pair.of(RInteger.of(0), right));
+    }
+    return left;
+  }
+
+  public IExpression parseExpression() {
+    return parseOperatorExpression();
   }
 
   private IExpression parseAtomicExpression() {

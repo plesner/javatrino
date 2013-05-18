@@ -10,6 +10,7 @@ public interface ITagValue extends IValue, Comparable<ITagValue> {
    * ordering between different types of tag values.
    */
   public enum Flavor {
+    KEY,
     INTEGER,
     STRING
   }

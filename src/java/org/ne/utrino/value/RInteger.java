@@ -13,6 +13,13 @@ public class RInteger extends RDeepImmutable implements ITagValue {
     this.value = value;
   }
 
+  /**
+   * Returns the value of this integer.
+   */
+  public int getValue() {
+    return this.value;
+  }
+
   @Override
   public String toString() {
     return Integer.toString(value);
@@ -51,7 +58,7 @@ public class RInteger extends RDeepImmutable implements ITagValue {
   /**
    * Returns a new integer with the given value.
    */
-  public static RInteger newInt(int value) {
+  public static RInteger of(int value) {
     return new RInteger(value);
   }
 

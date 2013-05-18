@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
+import java.util.Stack;
 import java.util.TreeMap;
 
 /**
@@ -53,6 +54,13 @@ public class Factory {
    */
   public static <T> HashSet<T> newHashSet() {
     return new HashSet<T>();
+  }
+
+  /**
+   * Creates a new stack.
+   */
+  public static <T> Stack<T> newStack() {
+    return new Stack<T>();
   }
 
 }

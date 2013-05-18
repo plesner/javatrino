@@ -14,7 +14,7 @@ import org.ne.utrino.syntax.Tokenizer;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.RPromise;
-import org.ne.utrino.value.RSpace;
+import org.ne.utrino.value.RContext;
 
 public class Compiler {
 
@@ -47,16 +47,16 @@ public class Compiler {
   private static void compileUnit(Process process, Unit unit) {
     final PhaseBuilder builder = new PhaseBuilder(Era.PAST);
     unit.accept(builder);
-    RPromise<RSpace> pastLoaded = process.schedule(new ITask<RSpace>() {
+    RPromise<RContext> pastLoaded = process.schedule(new ITask<RContext>() {
       @Override
-      public RSpace execute(Process process) {
+      public RContext execute(Process process) {
         return loadPhase(builder);
       }
     });
   }
 
-  private static RSpace loadPhase(PhaseBuilder builder) {
-    RSpace space = new RSpace();
+  private static RContext loadPhase(PhaseBuilder builder) {
+    RContext space = new RContext();
     for (Pair<ISymbol, IExpression> entry : builder.decls) {
 
     }
