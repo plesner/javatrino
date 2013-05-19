@@ -1,11 +1,13 @@
 package org.ne.utrino.syntax;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.ne.utrino.ast.Dynamic;
 import org.ne.utrino.ast.IDeclaration;
 import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.ISymbol;
+import org.ne.utrino.ast.Identifier;
 import org.ne.utrino.ast.Invocation;
 import org.ne.utrino.ast.Literal;
 import org.ne.utrino.ast.NameDeclaration;
@@ -16,6 +18,7 @@ import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.util.Pair;
+import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.RInteger;
 import org.ne.utrino.value.RKey;
 import org.ne.utrino.value.RString;
@@ -79,6 +82,12 @@ public class Parser {
     return value;
   }
 
+  private void expect(Type type) {
+    if (!at(type))
+      throw newSyntaxError();
+    advance();
+  }
+
   private SyntaxError newSyntaxError() {
     return new SyntaxError(getCurrent());
   }
@@ -117,15 +126,18 @@ public class Parser {
     return parseExpression();
   }
 
+  @SuppressWarnings("unchecked")
   public IExpression parseOperatorExpression() {
     IExpression left = parseAtomicExpression();
     while (hasMore() && at(Type.OPERATOR)) {
       String op = expectOperator();
-      IExpression right = parseAtomicExpression();
-      left = new Invocation(
-          Pair.of(RKey.THIS, left),
-          Pair.of(RKey.NAME, new Literal(RString.of(op))),
-          Pair.of(RInteger.of(0), right));
+      List<IExpression> args = parseArgumentsExpression();
+      Pair<? extends ITagValue, ? extends IExpression>[] entries = new Pair[2 + args.size()];
+      entries[0] = Pair.of(RKey.THIS, left);
+      entries[1] = Pair.of(RKey.NAME, new Literal(RString.of(op)));
+      for (int i = 0; i < args.size(); i++)
+        entries[i + 2] = Pair.of(RInteger.of(i), args.get(i));
+      left = new Invocation(entries);
     }
     return left;
   }
@@ -134,12 +146,47 @@ public class Parser {
     return parseOperatorExpression();
   }
 
+  /**
+   * Parses a list of operation arguments.
+   */
+  private List<IExpression> parseArgumentsExpression() {
+    if (at(Type.LPAREN)) {
+      expect(Type.LPAREN);
+      if (at(Type.RPAREN)) {
+        expect(Type.RPAREN);
+        return Collections.emptyList();
+      }
+      List<IExpression> exprs = Factory.newArrayList();
+      exprs.add(parseExpression());
+      while (hasMore() && at(Type.COMMA)) {
+        expect(Type.COMMA);
+        exprs.add(parseExpression());
+      }
+      expect(Type.RPAREN);
+      return exprs;
+    } else {
+      return Collections.singletonList(parseAtomicExpression());
+    }
+  }
+
   private IExpression parseAtomicExpression() {
     switch (getCurrent().getType()) {
     case NUMBER: {
       int value = Integer.parseInt(getCurrent().getValue());
       advance();
       return new Literal(new RInteger(value));
+    }
+    case LPAREN: {
+      expect(Type.LPAREN);
+      IExpression value = parseExpression();
+      expect(Type.RPAREN);
+      return value;
+    }
+    case IDENTIFIER: {
+      Token current = getCurrent();
+      advance();
+      Name name = current.getName();
+      return new Identifier(name);
     }
     default:
       throw newSyntaxError();

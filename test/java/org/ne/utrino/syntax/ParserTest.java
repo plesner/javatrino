@@ -11,11 +11,13 @@ import org.ne.utrino.ast.Dynamic;
 import org.ne.utrino.ast.IDeclaration;
 import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.ISymbol;
+import org.ne.utrino.ast.Identifier;
 import org.ne.utrino.ast.Invocation;
 import org.ne.utrino.ast.Literal;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
+import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
@@ -66,7 +68,19 @@ public class ParserTest extends TestCase {
   public void testExpression() {
     checkExpression("1", lt(1));
     checkExpression("2 + 3", bn(lt(2), "+", lt(3)));
+    checkExpression("2 + (3)", bn(lt(2), "+", lt(3)));
     checkExpression("2 + 3 + 4", bn(bn(lt(2), "+", lt(3)), "+", lt(4)));
+    checkExpression("$foo + 3", bn(id("foo"), "+", lt(3)));
+    checkExpression("$foo.plus 3", bn(id("foo"), "plus", lt(3)));
+    checkExpression("$foo.plus(3)", bn(id("foo"), "plus", lt(3)));
+    checkExpression("$foo.plus(3, 4)", bn(id("foo"), "plus", lt(3), lt(4)));
+  }
+
+  /**
+   * Creates and returns a new identifier.
+   */
+  private static Identifier id(String... parts) {
+    return new Identifier(Name.of(parts));
   }
 
   /**
@@ -115,8 +129,13 @@ public class ParserTest extends TestCase {
   /**
    * Creates a binary invocation.
    */
-  private static Invocation bn(IExpression left, String op, IExpression right) {
-    return iv(ag(RKey.THIS, left), ag(RKey.NAME, lt(op)), ag(toTag(0), right));
+  private static Invocation bn(IExpression left, String op, IExpression... right) {
+    List<Pair<ITagValue, IExpression>> args = Factory.newArrayList();
+    args.add(ag(RKey.THIS, left));
+    args.add(ag(RKey.NAME, lt(op)));
+    for (int i = 0; i < right.length; i++)
+      args.add(ag(toTag(i), right[i]));
+    return iv(args.toArray(new Pair[0]));
   }
 
 }
