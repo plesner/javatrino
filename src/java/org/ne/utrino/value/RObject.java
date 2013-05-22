@@ -4,7 +4,7 @@ package org.ne.utrino.value;
  */
 public abstract class RObject implements IValue {
 
-  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final RProtocol PROTOCOL = new RProtocol("Object");
 
   /**
    * Is this object equal to the given one?

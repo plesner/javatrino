@@ -13,7 +13,10 @@ import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.ISymbol;
 import org.ne.utrino.ast.Identifier;
 import org.ne.utrino.ast.Invocation;
+import org.ne.utrino.ast.Lambda;
 import org.ne.utrino.ast.Literal;
+import org.ne.utrino.ast.MethodHeader;
+import org.ne.utrino.ast.MethodHeader.Parameter;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
@@ -74,6 +77,18 @@ public class ParserTest extends TestCase {
     checkExpression("$foo.plus 3", bn(id("foo"), "plus", lt(3)));
     checkExpression("$foo.plus(3)", bn(id("foo"), "plus", lt(3)));
     checkExpression("$foo.plus(3, 4)", bn(id("foo"), "plus", lt(3), lt(4)));
+    checkExpression("$foo()", bn(id("foo"), "()"));
+    checkExpression("$foo(5)", bn(id("foo"), "()", lt(5)));
+    checkExpression("$foo(6, 7)", bn(id("foo"), "()", lt(6), lt(7)));
+    checkExpression("$foo[]", bn(id("foo"), "[]"));
+    checkExpression("$foo[5]", bn(id("foo"), "[]", lt(5)));
+    checkExpression("$foo[6, 7]", bn(id("foo"), "[]", lt(6), lt(7)));
+    checkExpression("$foo() + $bar()", bn(bn(id("foo"), "()"), "+", bn(id("bar"), "()")));
+    checkExpression("fn => 4", lm(hd("()"), lt(4)));
+    checkExpression("fn () => 5", lm(hd("()"), lt(5)));
+    checkExpression("fn ($a) => 6", lm(hd("()", pm("a")), lt(6)));
+    checkExpression("fn ($a, $b) => 7", lm(hd("()", pm("a"), pm("b")), lt(7)));
+    checkExpression("fn ($a, $b, $c) => 8", lm(hd("()", pm("a"), pm("b"), pm("c")), lt(8)));
   }
 
   /**
@@ -81,6 +96,27 @@ public class ParserTest extends TestCase {
    */
   private static Identifier id(String... parts) {
     return new Identifier(Name.of(parts));
+  }
+
+  /**
+   * Creates a new parameter.
+   */
+  private static Parameter pm(String... parts) {
+    return new Parameter(Name.of(parts));
+  }
+
+  /**
+   * Creates a new method header.
+   */
+  private static MethodHeader hd(String name, Parameter... params) {
+    return new MethodHeader(name, Arrays.asList(params));
+  }
+
+  /**
+   * Creates a new lambda.
+   */
+  private static Lambda lm(MethodHeader header, IExpression body) {
+    return new Lambda(header, body);
   }
 
   /**

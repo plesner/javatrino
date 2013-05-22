@@ -4,6 +4,7 @@ import java.util.Stack;
 
 import org.ne.utrino.ast.Invocation.RInvocationDescriptor;
 import org.ne.utrino.runtime.IInvocation;
+import org.ne.utrino.runtime.RControlMethod;
 import org.ne.utrino.runtime.RNativeMethod;
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.value.ITagValue;
@@ -21,7 +22,7 @@ public class Interpreter {
    */
   public static IValue interpret(CodeBlock block) {
     Activation bottom = new Activation(null, 0, block);
-    return run(bottom);
+    return new Interpreter().run(bottom);
   }
 
   /**
@@ -56,54 +57,98 @@ public class Interpreter {
   }
 
   /**
+   * Returns the invocation descriptor for the invocation this frame is blocked
+   * on.
+   */
+  public static RInvocationDescriptor getDescriptor(Activation frame) {
+    int index = frame.getBlock().getCode()[frame.getPc() - 1];
+    return (RInvocationDescriptor) frame.getBlock().getConstants()[index];
+  }
+
+  /**
+   * Returns a descriptor for the invocation this activation is blocked after.
+   */
+  public static Invocation getInvocation(Activation frame) {
+    RInvocationDescriptor desc = getDescriptor(frame);
+    return new Invocation(desc, frame.getStack());
+  }
+
+  private Activation frame;
+  private int[] code;
+  private IValue[] constants;
+  private int pc;
+  private Stack<IValue> stack;
+
+  /**
+   * Sets the given frame as the current one. This can be used both when entering
+   * and exiting frames (which becomes entering return frames).
+   */
+  public void enterActivation(Activation frame) {
+    this.frame = frame;
+    this.code = frame.getBlock().getCode();
+    this.constants = frame.getBlock().getConstants();
+    this.pc = frame.getPc();
+    this.stack = frame.getStack();
+  }
+
+  /**
+   * Returns a new activation that executes a call to the given method, returning
+   * to the given frame when complete.
+   */
+  public static Activation setUpCall(Activation frame, RMethod method) {
+    RInvocationDescriptor desc = getDescriptor(frame);
+    return new Activation(frame, desc.getOrder().length, method.getCode());
+  }
+
+  /**
    * Continues executing at the given activation.
    */
-  public static IValue run(Activation current) {
-    int[] code = current.getBlock().getCode();
-    IValue[] constants = current.getBlock().getConstants();
-    int pc = current.getPc();
+  private IValue run(Activation start) {
+    this.enterActivation(start);
     while (true) {
       switch (code[pc]) {
         case Opcode.kPush: {
           IValue value = constants[code[pc + 1]];
-          current.getStack().push(value);
+          stack.push(value);
           pc += 2;
           continue;
         }
         case Opcode.kInvoke: {
+          // Block the current activation behind this invocation.
+          frame.setPc(pc + 2);
           // Resolve the method to invoke.
-          RInvocationDescriptor desc = (RInvocationDescriptor) constants[code[pc + 1]];
-          Invocation invoke = new Invocation(desc, current.getStack());
-          RContext context = current.getBlock().getContext();
+          Invocation invoke = getInvocation(frame);
+          RContext context = frame.getBlock().getContext();
           RMethod method = context.getMethodSpace().lookupMethod(invoke);
           Assert.notNull(method);
           // Push an activation.
-          current.setPc(pc + 2);
-          current = new Activation(current, desc.getOrder().length, method.getCode());
-          code = current.getBlock().getCode();
-          constants = current.getBlock().getConstants();
-          pc = current.getPc();
+          Activation nextFrame = setUpCall(frame, method);
+          enterActivation(nextFrame);
           continue;
         }
         case Opcode.kNative: {
           RNativeMethod method = (RNativeMethod) constants[code[pc + 1]];
-          IValue value = method.invoke(current, null);
-          current.getStack().push(value);
+          IValue value = method.invoke(frame, null);
+          stack.push(value);
           // fallthrough
         }
         case Opcode.kImplicitReturn: {
-          IValue value = current.getStack().peek();
-          Activation prevFrame = current;
-          current = current.getBelow();
-          if (current == null)
+          IValue value = stack.peek();
+          Activation above = frame;
+          Activation below = frame.getBelow();
+          if (below == null)
             return value;
-          code = current.getBlock().getCode();
-          constants = current.getBlock().getConstants();
-          pc = current.getPc();
-          for (int i = 0; i < prevFrame.getArgumentCount(); i++)
-            current.getStack().pop();
-          current.getStack().push(value);
+          enterActivation(below);
+          for (int i = 0; i < above.getArgumentCount(); i++)
+            stack.pop();
+          stack.push(value);
           continue;
+        }
+        case Opcode.kControl: {
+          RControlMethod method = (RControlMethod) constants[code[pc + 1]];
+          pc += 2;
+          method.invoke(frame, this);
+          break;
         }
         default: {
           throw new RuntimeException("Unknown opcode " + code[pc]);

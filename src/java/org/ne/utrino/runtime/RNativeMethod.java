@@ -25,6 +25,6 @@ public abstract class RNativeMethod extends RInternalData {
    * As a side-effect, if this method can be inlined into the raw bytecode of
    * the caller, that information can be set on the inline info object.
    */
-  public abstract IValue invoke(Activation activation, InlineInfo inlineInfo);
+  public abstract IValue invoke(Activation frame, InlineInfo inlineInfo);
 
 }

@@ -3,10 +3,8 @@ package org.ne.utrino.interpreter;
 import java.util.List;
 import java.util.Map;
 
-import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.value.IValue;
-import org.ne.utrino.value.Phase;
 import org.ne.utrino.value.RContext;
 
 /**
@@ -21,6 +19,10 @@ public class Assembler {
 
   public Assembler(RContext context) {
     this.context = context;
+  }
+
+  public RContext getContext() {
+    return this.context;
   }
 
   /**
@@ -43,7 +45,6 @@ public class Assembler {
    * Registers a value as a constant that can be accessed from opcodes.
    */
   public int registerConstant(IValue value) {
-    Assert.equals(Phase.DEEP_IMMUTABLE, value.getPhase());
     Integer oldIndex = constantMap.get(value);
     if (oldIndex != null)
       return oldIndex;

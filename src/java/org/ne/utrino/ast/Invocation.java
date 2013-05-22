@@ -1,5 +1,6 @@
 package org.ne.utrino.ast;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,18 +32,22 @@ public class Invocation implements IExpression {
 
   @SafeVarargs
   public Invocation(Pair<? extends ITagValue, ? extends IExpression>... args) {
+    this(Arrays.asList(args));
+  }
+
+  public Invocation(List<? extends Pair<? extends ITagValue, ? extends IExpression>> args) {
     List<Pair<ITagValue, Integer>> tagOrder = Factory.newArrayList();
-    this.tags = new ITagValue[args.length];
-    this.values = new IExpression[args.length];
-    for (int i = 0; i < args.length; i++) {
-      Pair<? extends ITagValue, ? extends IExpression> arg = args[i];
+    this.tags = new ITagValue[args.size()];
+    this.values = new IExpression[args.size()];
+    for (int i = 0; i < args.size(); i++) {
+      Pair<? extends ITagValue, ? extends IExpression> arg = args.get(i);
       tagOrder.add(Pair.<ITagValue, Integer>of(arg.getFirst(), i));
       this.tags[i] = arg.getFirst();
       this.values[i] = arg.getSecond();
     }
     Collections.sort(tagOrder, Pair.<ITagValue, Integer>firstComparator());
-    this.order = new int[args.length];
-    for (int i = 0; i < args.length; i++) {
+    this.order = new int[args.size()];
+    for (int i = 0; i < args.size(); i++) {
       order[i] = tagOrder.get(i).getSecond();
     }
   }

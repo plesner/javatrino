@@ -9,7 +9,10 @@ import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.ISymbol;
 import org.ne.utrino.ast.Identifier;
 import org.ne.utrino.ast.Invocation;
+import org.ne.utrino.ast.Lambda;
 import org.ne.utrino.ast.Literal;
+import org.ne.utrino.ast.MethodHeader;
+import org.ne.utrino.ast.MethodHeader.Parameter;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
@@ -56,6 +59,14 @@ public class Parser {
     return new Unit(decls);
   }
 
+  private boolean atWord(String value) {
+    return at(Type.WORD) && getCurrent().getValue().equals(value);
+  }
+
+  private boolean atOperator(String value) {
+    return at(Type.OPERATOR) && getCurrent().getValue().equals(value);
+  }
+
   private void expectWord(String value) {
     expect(Type.WORD, value);
   }
@@ -81,6 +92,15 @@ public class Parser {
     advance();
     return value;
   }
+
+  private Name expectIdentifier() {
+    if (!at(Type.IDENTIFIER))
+      throw newSyntaxError();
+    Name value = getCurrent().getName();
+    advance();
+    return value;
+  }
+
 
   private void expect(Type type) {
     if (!at(type))
@@ -128,32 +148,109 @@ public class Parser {
 
   @SuppressWarnings("unchecked")
   public IExpression parseOperatorExpression() {
-    IExpression left = parseAtomicExpression();
+    IExpression left = parseApplicationExpression();
     while (hasMore() && at(Type.OPERATOR)) {
       String op = expectOperator();
-      List<IExpression> args = parseArgumentsExpression();
-      Pair<? extends ITagValue, ? extends IExpression>[] entries = new Pair[2 + args.size()];
-      entries[0] = Pair.of(RKey.THIS, left);
-      entries[1] = Pair.of(RKey.NAME, new Literal(RString.of(op)));
-      for (int i = 0; i < args.size(); i++)
-        entries[i + 2] = Pair.of(RInteger.of(i), args.get(i));
+      List<Pair<ITagValue, IExpression>> entries = Factory.newArrayList();
+      entries.add(Pair.<ITagValue, IExpression>of(RKey.THIS, left));
+      entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of(op))));
+      addArguments(entries, parseArguments(Type.LPAREN, Type.RPAREN, true));
       left = new Invocation(entries);
     }
     return left;
   }
 
+  /**
+   * Are we at the beginning of an application expression?
+   */
+  private boolean atApplication() {
+    return at(Type.LPAREN) || at(Type.LBRACK);
+  }
+
+  /**
+   * Parses an application (function call or indexing).
+   */
+  public IExpression parseApplicationExpression() {
+    IExpression left = parseAtomicExpression();
+    while (hasMore() && atApplication()) {
+      List<Pair<ITagValue, IExpression>> entries = Factory.newArrayList();
+      entries.add(Pair.<ITagValue, IExpression>of(RKey.THIS, left));
+      if (at(Type.LPAREN)) {
+        entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of("()"))));
+        addArguments(entries, parseArguments(Type.LPAREN, Type.RPAREN, false));
+      } else {
+        entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of("[]"))));
+        addArguments(entries, parseArguments(Type.LBRACK, Type.RBRACK, false));
+      }
+      left = new Invocation(entries);
+    }
+    return left;
+  }
+
+  /**
+   * Adds the given set of arguments to this list of invocation entries.
+   */
+  private void addArguments(List<Pair<ITagValue, IExpression>> entries, List<IExpression> args) {
+    for (int i = 0; i < args.size(); i++)
+      entries.add(Pair.<ITagValue, IExpression>of(RInteger.of(i), args.get(i)));
+  }
+
   public IExpression parseExpression() {
-    return parseOperatorExpression();
+    if (atWord("fn")) {
+      expectWord("fn");
+      MethodHeader header = parseMethodHeader();
+      expectOperator("=>");
+      IExpression body = parseExpression();
+      return new Lambda(header, body);
+    } else {
+      return parseOperatorExpression();
+    }
+  }
+
+  private MethodHeader parseMethodHeader() {
+    if (at(Type.LPAREN)) {
+      expect(Type.LPAREN);
+      List<Parameter> params = parseParameters(Type.RPAREN);
+      expect(Type.RPAREN);
+      return new MethodHeader("()", params);
+    } else if (atOperator("=>")) {
+      return new MethodHeader("()", Collections.<MethodHeader.Parameter>emptyList());
+    } else {
+      throw newSyntaxError();
+    }
+  }
+
+  /**
+   * Parses a whole parameter list.
+   */
+  private List<Parameter> parseParameters(Type end) {
+    if (at(end))
+      return Collections.emptyList();
+    List<Parameter> params = Factory.newArrayList();
+    params.add(parseParameter());
+    while (hasMore() && at(Type.COMMA)) {
+      expect(Type.COMMA);
+      params.add(parseParameter());
+    }
+    return params;
+  }
+
+  /**
+   * Parses a single possibly tagged parameter.
+   */
+  private Parameter parseParameter() {
+    Name name = expectIdentifier();
+    return new Parameter(name);
   }
 
   /**
    * Parses a list of operation arguments.
    */
-  private List<IExpression> parseArgumentsExpression() {
-    if (at(Type.LPAREN)) {
-      expect(Type.LPAREN);
-      if (at(Type.RPAREN)) {
-        expect(Type.RPAREN);
+  private List<IExpression> parseArguments(Type start, Type end, boolean application) {
+    if (at(start)) {
+      expect(start);
+      if (at(end)) {
+        expect(end);
         return Collections.emptyList();
       }
       List<IExpression> exprs = Factory.newArrayList();
@@ -162,10 +259,11 @@ public class Parser {
         expect(Type.COMMA);
         exprs.add(parseExpression());
       }
-      expect(Type.RPAREN);
+      expect(end);
       return exprs;
     } else {
-      return Collections.singletonList(parseAtomicExpression());
+      IExpression rest = application ? parseApplicationExpression() : parseAtomicExpression();
+      return Collections.singletonList(rest);
     }
   }
 

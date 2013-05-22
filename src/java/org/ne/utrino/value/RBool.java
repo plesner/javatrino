@@ -2,7 +2,7 @@ package org.ne.utrino.value;
 
 public class RBool extends RDeepImmutable {
 
-  private static final RProtocol PROTOCOL = new RProtocol();
+  private static final RProtocol PROTOCOL = new RProtocol("Bool");
   private static final Species SPECIES = new Species(PROTOCOL);
 
   private static final RBool TRUE = new RBool(true);
@@ -17,6 +17,10 @@ public class RBool extends RDeepImmutable {
   @Override
   public Species getSpecies() {
     return SPECIES;
+  }
+
+  public static RProtocol getProtocol() {
+    return PROTOCOL;
   }
 
   @Override

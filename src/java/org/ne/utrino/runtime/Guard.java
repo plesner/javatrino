@@ -61,6 +61,9 @@ public abstract class Guard {
      * distance and returned as the score, otherwise NO_MATCH will be returned.
      */
     private int findBestMatch(RProtocol current, int dist, IHierarchy hierarchy) {
+      if (dist > 1024) {
+        throw new RuntimeException("Inheritance cycle involving " + current);
+      }
       if (protocol.isIdentical(current)) {
         return dist;
       } else {

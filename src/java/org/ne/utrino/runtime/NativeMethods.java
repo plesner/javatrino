@@ -10,7 +10,9 @@ import java.lang.reflect.InvocationTargetException;
 import org.ne.utrino.interpreter.Activation;
 import org.ne.utrino.interpreter.Assembler;
 import org.ne.utrino.interpreter.CodeBlock;
+import org.ne.utrino.interpreter.Interpreter;
 import org.ne.utrino.interpreter.Opcode;
+import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Exceptions;
 import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.IValue;
@@ -19,6 +21,7 @@ import org.ne.utrino.value.RContext;
 import org.ne.utrino.value.RDeepImmutable;
 import org.ne.utrino.value.RInteger;
 import org.ne.utrino.value.RKey;
+import org.ne.utrino.value.RLambda;
 import org.ne.utrino.value.RMethod;
 import org.ne.utrino.value.RObject;
 import org.ne.utrino.value.RProtocol;
@@ -39,7 +42,6 @@ public class NativeMethods {
       return RBool.of(result);
     }
   };
-
 
   /* ---
    * I n t e g e r
@@ -65,6 +67,24 @@ public class NativeMethods {
     }
   };
 
+  /* ---
+   * L a m b d a
+   * --- */
+
+  @Native(self=RLambda.class, name="()", isControl=true)
+  private static final RControlMethod LAMBDA_CALL = new RControlMethod() {
+    @Override
+    public void invoke(Activation frame, Interpreter inter) {
+      RLambda lambda = (RLambda) frame.getArgument(0);
+      MethodSpace methodSpace = lambda.getMethodSpace();
+      IInvocation invoke = Interpreter.getInvocation(frame.getBelow());
+      RMethod method = methodSpace.lookupMethod(invoke);
+      Assert.notNull(method);
+      Activation nextFrame = Interpreter.setUpCall(frame.getBelow(), method);
+      inter.enterActivation(nextFrame);
+    }
+  };
+
   /**
    * Marker for a native method field that gives the default signature for that
    * native.
@@ -73,6 +93,8 @@ public class NativeMethods {
   @Target(ElementType.FIELD)
   private @interface Native {
     public String name();
+    public boolean allowExtra() default false;
+    public boolean isControl() default false;
     public Class<? extends IValue> self();
     public Class<? extends IValue> first() default RNoneMarker.class;
   }
@@ -116,19 +138,20 @@ public class NativeMethods {
    * field.
    */
   private static CodeBlock getNativeMethodCode(Field field) {
-    RNativeMethod method = getNativeMethod(field);
+    IValue method = getNativeMethod(field);
     Assembler assm = new Assembler(null);
     int index = assm.registerConstant(method);
-    assm.write(Opcode.NATIVE, index);
+    Native marker = field.getAnnotation(Native.class);
+    assm.write(marker.isControl() ? Opcode.CONTROL : Opcode.NATIVE, index);
     return assm.toCodeBlock();
   }
 
   /**
    * Extracts the native method value of the given field.
    */
-  private static RNativeMethod getNativeMethod(Field field) {
+  private static IValue getNativeMethod(Field field) {
     try {
-      return (RNativeMethod) field.get(null);
+      return (IValue) field.get(null);
     } catch (IllegalArgumentException iae) {
       throw Exceptions.propagate(iae);
     } catch (IllegalAccessException iae) {
@@ -140,7 +163,9 @@ public class NativeMethods {
    * Builds a method signature from a native method marker annotation.
    */
   private static Signature buildSignature(Native marker) {
-    Signature.Builder builder = Signature.newBuilder();
+    Signature.Builder builder = Signature
+        .newBuilder()
+        .setAllowExtra(marker.allowExtra());
     builder
         .addParameter(Guard.identity(RString.of(marker.name())))
         .addTag(RKey.NAME);
