@@ -26,9 +26,13 @@ public class Compiler {
 
   }
 
-  public static CodeBlock compileExpression(IExpression expr, RContext context) {
+  public static CodeBlock linkAndCompile(Signature signature, IExpression expr, RContext context) {
     expr.accept(new LinkVisitor(), null);
-    Assembler assm = new Assembler(context);
+    return compile(signature, expr, context);
+  }
+
+  public static CodeBlock compile(Signature signature, IExpression expr, RContext context) {
+    Assembler assm = new Assembler(signature, context);
     expr.emit(assm);
     assm.close();
     return assm.toCodeBlock();

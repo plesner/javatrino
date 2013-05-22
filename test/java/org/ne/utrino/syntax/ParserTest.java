@@ -20,6 +20,7 @@ import org.ne.utrino.ast.Unit;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
+import org.ne.utrino.value.RString;
 
 import junit.framework.TestCase;
 
@@ -93,14 +94,14 @@ public class ParserTest extends TestCase {
    * Creates and returns a new identifier.
    */
   private static Identifier id(String... parts) {
-    return new Identifier(Name.of(parts));
+    return new Identifier(nm(parts));
   }
 
   /**
    * Creates a new parameter.
    */
   private static Parameter pm(String... parts) {
-    return new Parameter(Name.of(parts));
+    return new Parameter(nm(parts), null);
   }
 
   /**
@@ -134,7 +135,10 @@ public class ParserTest extends TestCase {
   /**
    * Creates a new name.
    */
-  private static Name nm(String... parts) {
+  private static Name nm(String... strings) {
+    ITagValue[] parts = new ITagValue[strings.length];
+    for (int i = 0; i < strings.length; i++)
+      parts[i] = RString.of(strings[i]);
     return Name.of(parts);
   }
 

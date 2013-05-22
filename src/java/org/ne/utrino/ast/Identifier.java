@@ -37,8 +37,7 @@ public class Identifier implements IExpression {
   @Override
   public void emit(Assembler assm) {
     Assert.notNull(this.symbol);
-    int index = assm.getLocalIndex(this.symbol);
-    assm.local(index);
+    this.symbol.read(assm);
   }
 
   @Override

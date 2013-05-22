@@ -8,6 +8,8 @@ import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Internal;
 import org.ne.utrino.util.Name;
+import org.ne.utrino.value.ITagValue;
+import org.ne.utrino.value.RString;
 
 /**
  * Utility for chopping a string into tokens.
@@ -217,8 +219,10 @@ public class Tokenizer {
     while (hasMore() && (isWordPart(getCurrent()) || (getCurrent() == ':')))
       advance();
     String value = source.substring(start, getCursor());
-    return new Token.NameToken(value, delimStatus, isDynamic,
-        Name.of(value.substring(1).split(":")));
+    List<ITagValue> parts = Factory.newArrayList();
+    for (String part : value.substring(1).split(":"))
+      parts.add(RString.of(part));
+    return new Token.NameToken(value, delimStatus, isDynamic, Name.of(parts.toArray(new ITagValue[0])));
   }
 
   /**

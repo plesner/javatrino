@@ -21,7 +21,7 @@ public class Interpreter {
    * Executes the given code block, returning the resulting value.
    */
   public static IValue interpret(CodeBlock block) {
-    Activation bottom = new Activation(null, 0, block);
+    Activation bottom = new Activation(null, null, block);
     return new Interpreter().run(bottom);
   }
 
@@ -97,7 +97,7 @@ public class Interpreter {
    */
   public static Activation setUpCall(Activation frame, RMethod method) {
     RInvocationDescriptor desc = getDescriptor(frame);
-    return new Activation(frame, desc.getOrder().length, method.getCode());
+    return new Activation(frame, desc, method.getCode());
   }
 
   /**
@@ -161,6 +161,13 @@ public class Interpreter {
         case Opcode.kLocal: {
           IValue value = stack.get(code[pc + 1]);
           stack.push(value);
+          pc += 2;
+          break;
+        }
+        case Opcode.kArgument: {
+          int index = code[pc + 1];
+          RInvocationDescriptor desc = getDescriptor(frame.getBelow());
+          stack.push(frame.getArgument(index));
           pc += 2;
           break;
         }

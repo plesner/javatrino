@@ -70,7 +70,7 @@ public class NativeMethods {
    * L a m b d a
    * --- */
 
-  @Native(self=RLambda.class, name="()", isControl=true)
+  @Native(self=RLambda.class, name="()", isControl=true, allowExtra=true)
   private static final RControlMethod LAMBDA_CALL = new RControlMethod() {
     @Override
     public void invoke(Activation frame, Interpreter inter) {
@@ -138,7 +138,7 @@ public class NativeMethods {
    */
   private static CodeBlock getNativeMethodCode(Field field) {
     IValue method = getNativeMethod(field);
-    Assembler assm = new Assembler(null);
+    Assembler assm = new Assembler(null, null);
     Native marker = field.getAnnotation(Native.class);
     if (marker.isControl()) {
       assm.control(method);

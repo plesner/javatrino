@@ -11,7 +11,8 @@ public enum Opcode {
   NATIVE(3),
   CONTROL(4),
   POP_BELOW(5),
-  LOCAL(6);
+  LOCAL(6),
+  ARGUMENT(7);
 
   public static final int kPush = 0;
   public static final int kInvoke = 1;
@@ -20,6 +21,7 @@ public enum Opcode {
   public static final int kControl = 4;
   public static final int kPopIntermediate = 5;
   public static final int kLocal = 6;
+  public static final int kArgument = 7;
 
   private final int value;
 

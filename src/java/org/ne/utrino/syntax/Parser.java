@@ -18,6 +18,7 @@ import org.ne.utrino.syntax.Token.DelimiterStatus;
 import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
+import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.RInteger;
 
 public class Parser {
@@ -227,10 +228,11 @@ public class Parser {
     if (at(end))
       return Collections.emptyList();
     List<Parameter> params = Factory.newArrayList();
-    params.add(parseParameter());
+    int index = 0;
+    params.add(parseParameter(RInteger.of(index++)));
     while (hasMore() && at(Type.COMMA)) {
       expect(Type.COMMA);
-      params.add(parseParameter());
+      params.add(parseParameter(RInteger.of(index++)));
     }
     return params;
   }
@@ -238,9 +240,9 @@ public class Parser {
   /**
    * Parses a single possibly tagged parameter.
    */
-  private Parameter parseParameter() {
+  private Parameter parseParameter(ITagValue implicitTag) {
     Name name = expectIdentifier();
-    return new Parameter(name);
+    return new Parameter(name, implicitTag);
   }
 
   /**

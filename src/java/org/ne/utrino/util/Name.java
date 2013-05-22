@@ -3,15 +3,17 @@ package org.ne.utrino.util;
 import java.util.Arrays;
 import java.util.List;
 
+import org.ne.utrino.value.ITagValue;
+
 public class Name {
 
-  private final List<String> parts;
+  private final List<ITagValue> parts;
 
-  public Name(List<String> parts) {
+  public Name(List<ITagValue> parts) {
     this.parts = parts;
   }
 
-  public static Name of(String... parts) {
+  public static Name of(ITagValue... parts) {
     return new Name(Arrays.asList(parts));
   }
 

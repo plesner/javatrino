@@ -20,7 +20,7 @@ import junit.framework.TestCase;
 public class InterpreterTest extends TestCase {
 
   private static IValue run(IExpression expr, RContext context) {
-    return Interpreter.interpret(Compiler.compileExpression(expr, context));
+    return Interpreter.interpret(Compiler.linkAndCompile(null, expr, context));
   }
 
   private static IValue run(String str) {
@@ -50,6 +50,15 @@ public class InterpreterTest extends TestCase {
     assertEquals(toValue(4), run("def $x := 4 in $x"));
     assertEquals(toValue(6), run("def $x := 6 in def $y := 7 in $x"));
     assertEquals(toValue(7), run("def $x := 6 in def $y := 7 in $y"));
+    assertEquals(toValue(3), run("1 + (def $a := 2 in $a)"));
+    assertEquals(toValue(8), run("(fn => (def $b := 7 in $b))() + 1"));
+  }
+
+  @Test
+  public void testArguments() {
+    assertEquals(toValue(6), run("(fn ($a) => $a)(6)"));
+    assertEquals(toValue(6), run("(fn ($a, $b) => $a)(6, 7)"));
+    assertEquals(toValue(7), run("(fn ($a, $b) => $b)(6, 7)"));
   }
 
 }

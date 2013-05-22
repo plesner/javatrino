@@ -18,8 +18,14 @@ public class LinkVisitor implements IVisitor<IScope> {
   }
 
   @Override
-  public void visitLambda(Lambda that, IScope scope) {
-    that.getBody().accept(this, scope);
+  public void visitLambda(final Lambda that, final IScope scope) {
+    IScope inner = new IScope() {
+      @Override
+      public ISymbol readName(Name name) {
+        return that.readName(name, scope);
+      }
+    };
+    that.getBody().accept(this, inner);
   }
 
   @Override

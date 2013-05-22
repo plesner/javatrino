@@ -197,6 +197,18 @@ public class Signature {
   }
 
   /**
+   * Returns the index of the parameter with the given tag.
+   */
+  public int getIndexForTag(ITagValue tag) {
+    for (Entry entry : entries) {
+      if (entry.tag.equals(tag))
+        return entry.index;
+    }
+    Assert.that(false);
+    return -1;
+  }
+
+  /**
    * Returns a fresh signature builder.
    */
   public static Builder newBuilder() {

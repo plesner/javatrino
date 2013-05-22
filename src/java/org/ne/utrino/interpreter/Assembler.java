@@ -5,8 +5,10 @@ import java.util.Map;
 
 import org.ne.utrino.ast.Invocation.RInvocationDescriptor;
 import org.ne.utrino.compiler.ISymbol;
+import org.ne.utrino.runtime.Signature;
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
+import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.IValue;
 import org.ne.utrino.value.RContext;
 
@@ -15,14 +17,16 @@ import org.ne.utrino.value.RContext;
  */
 public class Assembler {
 
+  private final Signature signature;
   private final RContext context;
   private final List<Integer> instrs = Factory.newArrayList();
   private final Map<IValue, Integer> constantMap = Factory.newHashMap();
   private final List<IValue> constants = Factory.newArrayList();
   private int stackHeight = 0;
-  private final Map<ISymbol, Integer> stackMap = Factory.newHashMap();
+  private final Map<ISymbol, Integer> locals = Factory.newHashMap();
 
-  public Assembler(RContext context) {
+  public Assembler(Signature signature, RContext context) {
+    this.signature = signature;
     this.context = context;
   }
 
@@ -54,24 +58,24 @@ public class Assembler {
    * retrieved by an identifier later on.
    */
   public void setTopValueName(ISymbol symbol) {
-    Assert.that(!this.stackMap.containsKey(symbol));
-    this.stackMap.put(symbol, stackHeight - 1);
+    Assert.that(!this.locals.containsKey(symbol));
+    this.locals.put(symbol, stackHeight - 1);
   }
 
   /**
    * Removes the given symbol as the name of a local.
    */
   public void forgetName(ISymbol symbol) {
-    Assert.that(this.stackMap.containsKey(symbol));
-    this.stackMap.remove(symbol);
+    Assert.that(this.locals.containsKey(symbol));
+    this.locals.remove(symbol);
   }
 
   /**
    * Returns the stack index of the given symbol.
    */
   public int getLocalIndex(ISymbol symbol) {
-    Assert.that(this.stackMap.containsKey(symbol));
-    return this.stackMap.get(symbol);
+    Assert.that(this.locals.containsKey(symbol));
+    return this.locals.get(symbol);
   }
 
   /**
@@ -111,8 +115,17 @@ public class Assembler {
   /**
    * Reads the local at the given index.
    */
-  public void local(int index) {
+  public void readLocal(int index) {
     write(Opcode.LOCAL, index);
+    stackHeight++;
+  }
+
+  /**
+   * Reads the argument with the given tag.
+   */
+  public void readArgument(ITagValue tag) {
+    int index = signature.getIndexForTag(tag);
+    write(Opcode.ARGUMENT, index);
     stackHeight++;
   }
 
