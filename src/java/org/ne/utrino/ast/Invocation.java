@@ -1,6 +1,5 @@
 package org.ne.utrino.ast;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -9,7 +8,10 @@ import org.ne.utrino.interpreter.Opcode;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
+import org.ne.utrino.value.RInteger;
 import org.ne.utrino.value.RInternalData;
+import org.ne.utrino.value.RKey;
+import org.ne.utrino.value.RString;
 /**
  * A multi-method invocation.
  */
@@ -29,11 +31,6 @@ public class Invocation implements IExpression {
    * Argument expressions in evaluation order.
    */
   private final IExpression[] values;
-
-  @SafeVarargs
-  public Invocation(Pair<? extends ITagValue, ? extends IExpression>... args) {
-    this(Arrays.asList(args));
-  }
 
   public Invocation(List<? extends Pair<? extends ITagValue, ? extends IExpression>> args) {
     List<Pair<ITagValue, Integer>> tagOrder = Factory.newArrayList();
@@ -87,6 +84,43 @@ public class Invocation implements IExpression {
      */
     public ITagValue[] getTags() {
       return this.tags;
+    }
+
+  }
+
+  /**
+   * A utility for consing up invocations.
+   */
+  public static class Builder {
+
+    private final List<Pair<ITagValue, IExpression>> entries = Factory.newArrayList();
+
+    public Invocation build() {
+      return new Invocation(entries);
+    }
+
+    /**
+     * Sets the receiver argument.
+     */
+    public Builder setThis(IExpression value) {
+      entries.add(Pair.<ITagValue, IExpression>of(RKey.THIS, value));
+      return this;
+    }
+
+    /**
+     * Sets the method name argument.
+     */
+    public Builder setName(String name) {
+      entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of(name))));
+      return this;
+    }
+
+    /**
+     * Adds a positional argument.
+     */
+    public Builder setPositional(int index, IExpression value) {
+      entries.add(Pair.<ITagValue, IExpression>of(RInteger.of(index), value));
+      return this;
     }
 
   }

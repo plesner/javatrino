@@ -1,6 +1,5 @@
 package org.ne.utrino.syntax;
 
-import static org.ne.utrino.testing.TestFactory.toTag;
 import static org.ne.utrino.testing.TestFactory.toValue;
 
 import java.util.Arrays;
@@ -20,11 +19,9 @@ import org.ne.utrino.ast.MethodHeader.Parameter;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
-import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
-import org.ne.utrino.value.RKey;
 
 import junit.framework.TestCase;
 
@@ -159,19 +156,19 @@ public class ParserTest extends TestCase {
    */
   @SafeVarargs
   private static Invocation iv(Pair<ITagValue, IExpression>... args) {
-    return new Invocation(args);
+    return new Invocation(Arrays.asList(args));
   }
 
   /**
    * Creates a binary invocation.
    */
   private static Invocation bn(IExpression left, String op, IExpression... right) {
-    List<Pair<ITagValue, IExpression>> args = Factory.newArrayList();
-    args.add(ag(RKey.THIS, left));
-    args.add(ag(RKey.NAME, lt(op)));
+    Invocation.Builder builder = new Invocation.Builder();
+    builder.setThis(left);
+    builder.setName(op);
     for (int i = 0; i < right.length; i++)
-      args.add(ag(toTag(i), right[i]));
-    return iv(args.toArray(new Pair[0]));
+      builder.setPositional(i, right[i]);
+    return builder.build();
   }
 
 }

@@ -20,11 +20,7 @@ import org.ne.utrino.syntax.Token.DelimiterStatus;
 import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
-import org.ne.utrino.util.Pair;
-import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.RInteger;
-import org.ne.utrino.value.RKey;
-import org.ne.utrino.value.RString;
 
 public class Parser {
 
@@ -146,16 +142,14 @@ public class Parser {
     return parseExpression();
   }
 
-  @SuppressWarnings("unchecked")
   public IExpression parseOperatorExpression() {
     IExpression left = parseApplicationExpression();
     while (hasMore() && at(Type.OPERATOR)) {
-      String op = expectOperator();
-      List<Pair<ITagValue, IExpression>> entries = Factory.newArrayList();
-      entries.add(Pair.<ITagValue, IExpression>of(RKey.THIS, left));
-      entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of(op))));
-      addArguments(entries, parseArguments(Type.LPAREN, Type.RPAREN, true));
-      left = new Invocation(entries);
+      Invocation.Builder builder = new Invocation.Builder();
+      builder.setThis(left);
+      builder.setName(expectOperator());
+      addArguments(builder, parseArguments(Type.LPAREN, Type.RPAREN, true));
+      left = builder.build();
     }
     return left;
   }
@@ -173,16 +167,16 @@ public class Parser {
   public IExpression parseApplicationExpression() {
     IExpression left = parseAtomicExpression();
     while (hasMore() && atApplication()) {
-      List<Pair<ITagValue, IExpression>> entries = Factory.newArrayList();
-      entries.add(Pair.<ITagValue, IExpression>of(RKey.THIS, left));
+      Invocation.Builder builder = new Invocation.Builder();
+      builder.setThis(left);
       if (at(Type.LPAREN)) {
-        entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of("()"))));
-        addArguments(entries, parseArguments(Type.LPAREN, Type.RPAREN, false));
+        builder.setName("()");
+        addArguments(builder, parseArguments(Type.LPAREN, Type.RPAREN, false));
       } else {
-        entries.add(Pair.<ITagValue, IExpression>of(RKey.NAME, new Literal(RString.of("[]"))));
-        addArguments(entries, parseArguments(Type.LBRACK, Type.RBRACK, false));
+        builder.setName("[]");
+        addArguments(builder, parseArguments(Type.LBRACK, Type.RBRACK, false));
       }
-      left = new Invocation(entries);
+      left = builder.build();
     }
     return left;
   }
@@ -190,9 +184,9 @@ public class Parser {
   /**
    * Adds the given set of arguments to this list of invocation entries.
    */
-  private void addArguments(List<Pair<ITagValue, IExpression>> entries, List<IExpression> args) {
+  private void addArguments(Invocation.Builder builder, List<IExpression> args) {
     for (int i = 0; i < args.size(); i++)
-      entries.add(Pair.<ITagValue, IExpression>of(RInteger.of(i), args.get(i)));
+      builder.setPositional(i, args.get(i));
   }
 
   public IExpression parseExpression() {
