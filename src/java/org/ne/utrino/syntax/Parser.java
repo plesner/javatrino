@@ -3,18 +3,16 @@ package org.ne.utrino.syntax;
 import java.util.Collections;
 import java.util.List;
 
-import org.ne.utrino.ast.Dynamic;
 import org.ne.utrino.ast.IDeclaration;
 import org.ne.utrino.ast.IExpression;
-import org.ne.utrino.ast.ISymbol;
 import org.ne.utrino.ast.Identifier;
 import org.ne.utrino.ast.Invocation;
 import org.ne.utrino.ast.Lambda;
 import org.ne.utrino.ast.Literal;
+import org.ne.utrino.ast.LocalDeclaration;
 import org.ne.utrino.ast.MethodHeader;
 import org.ne.utrino.ast.MethodHeader.Parameter;
 import org.ne.utrino.ast.NameDeclaration;
-import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
 import org.ne.utrino.syntax.Token.DelimiterStatus;
 import org.ne.utrino.syntax.Token.Type;
@@ -25,7 +23,10 @@ import org.ne.utrino.value.RInteger;
 public class Parser {
 
   private static final String DEF_WORD = "def";
+  private static final String FN_WORD = "fn";
+  private static final String IN_WORD = "in";
   private static final String ASSIGN_OP = ":=";
+  private static final String TO_OP = "=>";
 
   private final List<Token> tokens;
   private int cursor = 0;
@@ -49,7 +50,7 @@ public class Parser {
   private Unit parseUnit() {
     List<IDeclaration> decls = Factory.newArrayList();
     while (hasMore()) {
-      IDeclaration decl = parseDeclaration();
+      IDeclaration decl = parseToplevelDeclaration();
       decls.add(decl);
     }
     return new Unit(decls);
@@ -108,25 +109,18 @@ public class Parser {
     return new SyntaxError(getCurrent());
   }
 
-  public ISymbol parseSymbol() {
+  public Name parseName() {
     if (at(Type.IDENTIFIER)) {
       Token current = getCurrent();
       advance();
-      Name name = current.getName();
-      if (current.isDynamic()) {
-        return new Dynamic(name);
-      } else {
-        return new Static(name);
-      }
+      return current.getName();
     } else {
       throw newSyntaxError();
     }
   }
 
-  public IDeclaration parseDeclaration() {
-    expectWord(DEF_WORD);
-    ISymbol name = parseSymbol();
-    IExpression value = parseDeclarationTail();
+  public NameDeclaration parseToplevelDeclaration() {
+    NameDeclaration result = parseNameDeclaration();
     if (hasMore()) {
       DelimiterStatus status = getCurrent().getDelimiterStatus();
       if (!status.isDelimiter())
@@ -134,6 +128,13 @@ public class Parser {
       if (status.isExplicit())
         advance();
     }
+    return result;
+  }
+
+  private NameDeclaration parseNameDeclaration() {
+    expectWord(DEF_WORD);
+    Name name = parseName();
+    IExpression value = parseDeclarationTail();
     return new NameDeclaration(name, value);
   }
 
@@ -190,12 +191,17 @@ public class Parser {
   }
 
   public IExpression parseExpression() {
-    if (atWord("fn")) {
-      expectWord("fn");
+    if (atWord(FN_WORD)) {
+      expectWord(FN_WORD);
       MethodHeader header = parseMethodHeader();
-      expectOperator("=>");
+      expectOperator(TO_OP);
       IExpression body = parseExpression();
       return new Lambda(header, body);
+    } else if (atWord(DEF_WORD)) {
+      NameDeclaration decl = parseNameDeclaration();
+      expectWord(IN_WORD);
+      IExpression value = parseExpression();
+      return new LocalDeclaration(decl, value);
     } else {
       return parseOperatorExpression();
     }

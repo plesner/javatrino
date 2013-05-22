@@ -1,7 +1,6 @@
 package org.ne.utrino.ast;
 
 import org.ne.utrino.interpreter.Assembler;
-import org.ne.utrino.interpreter.Opcode;
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.value.IValue;
 /**
@@ -16,14 +15,18 @@ public class Literal implements IExpression {
   }
 
   @Override
-  public String toString() {
-    return value.toString();
+  public <T> void accept(IVisitor<T> visitor, T data) {
+    visitor.visitLiteral(this, data);
   }
 
   @Override
   public void emit(Assembler assm) {
-    int index = assm.registerConstant(value);
-    assm.write(Opcode.PUSH, index);
+    assm.push(value);
+  }
+
+  @Override
+  public String toString() {
+    return value.toString();
   }
 
 }

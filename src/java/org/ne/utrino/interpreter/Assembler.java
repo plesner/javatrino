@@ -3,6 +3,9 @@ package org.ne.utrino.interpreter;
 import java.util.List;
 import java.util.Map;
 
+import org.ne.utrino.ast.Invocation.RInvocationDescriptor;
+import org.ne.utrino.compiler.ISymbol;
+import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.value.IValue;
 import org.ne.utrino.value.RContext;
@@ -16,19 +19,107 @@ public class Assembler {
   private final List<Integer> instrs = Factory.newArrayList();
   private final Map<IValue, Integer> constantMap = Factory.newHashMap();
   private final List<IValue> constants = Factory.newArrayList();
+  private int stackHeight = 0;
+  private final Map<ISymbol, Integer> stackMap = Factory.newHashMap();
 
   public Assembler(RContext context) {
     this.context = context;
   }
 
+  /**
+   * Returns the context in which this code will be run.
+   */
   public RContext getContext() {
     return this.context;
   }
 
   /**
+   * Returns the current stack height.
+   */
+  public int getStackHeight() {
+    return this.stackHeight;
+  }
+
+  /**
+   * Writes a push instruction.
+   */
+  public void push(IValue value) {
+    int index = registerConstant(value);
+    write(Opcode.PUSH, index);
+    stackHeight++;
+  }
+
+  /**
+   * Sets the name of the value on the top of the stack such that it can be
+   * retrieved by an identifier later on.
+   */
+  public void setTopValueName(ISymbol symbol) {
+    Assert.that(!this.stackMap.containsKey(symbol));
+    this.stackMap.put(symbol, stackHeight - 1);
+  }
+
+  /**
+   * Removes the given symbol as the name of a local.
+   */
+  public void forgetName(ISymbol symbol) {
+    Assert.that(this.stackMap.containsKey(symbol));
+    this.stackMap.remove(symbol);
+  }
+
+  /**
+   * Returns the stack index of the given symbol.
+   */
+  public int getLocalIndex(ISymbol symbol) {
+    Assert.that(this.stackMap.containsKey(symbol));
+    return this.stackMap.get(symbol);
+  }
+
+  /**
+   * Writes an invocation instruction.
+   */
+  public void invoke(RInvocationDescriptor desc) {
+    int index = registerConstant(desc);
+    write(Opcode.INVOKE, index);
+    stackHeight -= (desc.getArgumentCount() - 1);
+  }
+
+  /**
+   * Call a control primitive.
+   */
+  public void control(IValue handler) {
+    int index = registerConstant(handler);
+    write(Opcode.CONTROL, index);
+  }
+
+  /**
+   * Call a native operation.
+   */
+  public void nathive(IValue handler) {
+    int index = registerConstant(handler);
+    write(Opcode.NATIVE, index);
+  }
+
+  /**
+   * Pops the element below the top element, replacing it with the current top
+   * element.
+   */
+  public void popBelow() {
+    write(Opcode.POP_BELOW);
+    stackHeight--;
+  }
+
+  /**
+   * Reads the local at the given index.
+   */
+  public void local(int index) {
+    write(Opcode.LOCAL, index);
+    stackHeight++;
+  }
+
+  /**
    * Writes an instruction to the instruction stream.
    */
-  public void write(Opcode code, int... args) {
+  private void write(Opcode code, int... args) {
     instrs.add(code.getValue());
     for (int arg : args)
       instrs.add(arg);
@@ -38,6 +129,7 @@ public class Assembler {
    * Writes the postscript that ends this code.
    */
   public void close() {
+    Assert.equals(1, stackHeight);
     write(Opcode.IMPLICIT_RETURN);
   }
 

@@ -133,6 +133,7 @@ public class Interpreter {
           // fallthrough
         }
         case Opcode.kImplicitReturn: {
+          Assert.equals(1, stack.size());
           IValue value = stack.peek();
           Activation above = frame;
           Activation below = frame.getBelow();
@@ -148,6 +149,19 @@ public class Interpreter {
           RControlMethod method = (RControlMethod) constants[code[pc + 1]];
           pc += 2;
           method.invoke(frame, this);
+          break;
+        }
+        case Opcode.kPopIntermediate: {
+          IValue value = stack.pop();
+          stack.pop();
+          stack.push(value);
+          pc += 1;
+          break;
+        }
+        case Opcode.kLocal: {
+          IValue value = stack.get(code[pc + 1]);
+          stack.push(value);
+          pc += 2;
           break;
         }
         default: {

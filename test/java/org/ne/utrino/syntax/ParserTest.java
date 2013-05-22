@@ -6,18 +6,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
-import org.ne.utrino.ast.Dynamic;
 import org.ne.utrino.ast.IDeclaration;
 import org.ne.utrino.ast.IExpression;
-import org.ne.utrino.ast.ISymbol;
 import org.ne.utrino.ast.Identifier;
 import org.ne.utrino.ast.Invocation;
 import org.ne.utrino.ast.Lambda;
 import org.ne.utrino.ast.Literal;
+import org.ne.utrino.ast.LocalDeclaration;
 import org.ne.utrino.ast.MethodHeader;
 import org.ne.utrino.ast.MethodHeader.Parameter;
 import org.ne.utrino.ast.NameDeclaration;
-import org.ne.utrino.ast.Static;
 import org.ne.utrino.ast.Unit;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.util.Pair;
@@ -27,18 +25,17 @@ import junit.framework.TestCase;
 
 public class ParserTest extends TestCase {
 
-  private void checkSymbol(String str, ISymbol expected) {
+  private void checkName(String str, Name expected) {
     List<Token> tokens = Tokenizer.tokenize(str);
-    ISymbol symbol = new Parser(tokens).parseSymbol();
-    assertEquals(expected, symbol);
+    Name name = new Parser(tokens).parseName();
+    assertEquals(expected, name);
   }
 
   @Test
   public void testSymbols() {
-    checkSymbol("$foo:bar:baz", dn("foo", "bar", "baz"));
-    checkSymbol("$foo:bar", dn("foo", "bar"));
-    checkSymbol("$foo", dn("foo"));
-    checkSymbol("@foo:bar:baz", st("foo", "bar", "baz"));
+    checkName("$foo:bar:baz", nm("foo", "bar", "baz"));
+    checkName("$foo:bar", nm("foo", "bar"));
+    checkName("$foo", nm("foo"));
   }
 
   private void checkUnit(String str, IDeclaration... expectedDecls) {
@@ -50,12 +47,11 @@ public class ParserTest extends TestCase {
 
   @Test
   public void testDeclaration() {
-    checkUnit("def $x := 4;", nd(dn("x"), lt(4)));
-    checkUnit("def $x:y:z := 4;", nd(dn("x", "y", "z"), lt(4)));
-    checkUnit("def @x := 4;", nd(st("x"), lt(4)));
+    checkUnit("def $x := 4;", nd(nm("x"), lt(4)));
+    checkUnit("def $x:y:z := 4;", nd(nm("x", "y", "z"), lt(4)));
     checkUnit("def $x := 4; def $y := 5;",
-        nd(dn("x"), lt(4)),
-        nd(dn("y"), lt(5)));
+        nd(nm("x"), lt(4)),
+        nd(nm("y"), lt(5)));
   }
 
   private void checkExpression(String str, IExpression expected) {
@@ -67,6 +63,7 @@ public class ParserTest extends TestCase {
   @Test
   public void testExpression() {
     checkExpression("1", lt(1));
+
     checkExpression("2 + 3", bn(lt(2), "+", lt(3)));
     checkExpression("2 + (3)", bn(lt(2), "+", lt(3)));
     checkExpression("2 + 3 + 4", bn(bn(lt(2), "+", lt(3)), "+", lt(4)));
@@ -74,6 +71,7 @@ public class ParserTest extends TestCase {
     checkExpression("$foo.plus 3", bn(id("foo"), "plus", lt(3)));
     checkExpression("$foo.plus(3)", bn(id("foo"), "plus", lt(3)));
     checkExpression("$foo.plus(3, 4)", bn(id("foo"), "plus", lt(3), lt(4)));
+
     checkExpression("$foo()", bn(id("foo"), "()"));
     checkExpression("$foo(5)", bn(id("foo"), "()", lt(5)));
     checkExpression("$foo(6, 7)", bn(id("foo"), "()", lt(6), lt(7)));
@@ -81,11 +79,14 @@ public class ParserTest extends TestCase {
     checkExpression("$foo[5]", bn(id("foo"), "[]", lt(5)));
     checkExpression("$foo[6, 7]", bn(id("foo"), "[]", lt(6), lt(7)));
     checkExpression("$foo() + $bar()", bn(bn(id("foo"), "()"), "+", bn(id("bar"), "()")));
+
     checkExpression("fn => 4", lm(hd("()"), lt(4)));
     checkExpression("fn () => 5", lm(hd("()"), lt(5)));
     checkExpression("fn ($a) => 6", lm(hd("()", pm("a")), lt(6)));
     checkExpression("fn ($a, $b) => 7", lm(hd("()", pm("a"), pm("b")), lt(7)));
     checkExpression("fn ($a, $b, $c) => 8", lm(hd("()", pm("a"), pm("b"), pm("c")), lt(8)));
+    checkExpression("def $x := 3 in $x", ld(nd(nm("x"), lt(3)), id("x")));
+    checkExpression("def $x := 3 in fn () => $x", ld(nd(nm("x"), lt(3)), lm(hd("()"), id("x"))));
   }
 
   /**
@@ -117,24 +118,24 @@ public class ParserTest extends TestCase {
   }
 
   /**
+   * Creates a new local declaration expression.
+   */
+  private static LocalDeclaration ld(NameDeclaration decl, IExpression value) {
+    return new LocalDeclaration(decl, value);
+  }
+
+  /**
    * Creates a new name declaration.
    */
-  private static NameDeclaration nd(ISymbol name, IExpression value) {
+  private static NameDeclaration nd(Name name, IExpression value) {
     return new NameDeclaration(name, value);
   }
 
   /**
-   * Creates a new dynamic name.
+   * Creates a new name.
    */
-  private static Dynamic dn(String... parts) {
-    return new Dynamic(Name.of(parts));
-  }
-
-  /**
-   * Creates a new static name.
-   */
-  private static Static st(String... parts) {
-    return new Static(Name.of(parts));
+  private static Name nm(String... parts) {
+    return Name.of(parts);
   }
 
   /**

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.ne.utrino.ast.IExpression;
 import org.ne.utrino.ast.Unit;
+import org.ne.utrino.compiler.LinkVisitor;
 import org.ne.utrino.interpreter.Assembler;
 import org.ne.utrino.interpreter.CodeBlock;
 import org.ne.utrino.syntax.Parser;
@@ -26,6 +27,7 @@ public class Compiler {
   }
 
   public static CodeBlock compileExpression(IExpression expr, RContext context) {
+    expr.accept(new LinkVisitor(), null);
     Assembler assm = new Assembler(context);
     expr.emit(assm);
     assm.close();

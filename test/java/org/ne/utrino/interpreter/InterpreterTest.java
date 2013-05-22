@@ -44,4 +44,12 @@ public class InterpreterTest extends TestCase {
     assertEquals(toValue(7), run("(fn => (3 + 4))()"));
   }
 
+  @Test
+  public void testLocal() {
+    assertEquals(toValue(5), run("def $x := 4 in 5"));
+    assertEquals(toValue(4), run("def $x := 4 in $x"));
+    assertEquals(toValue(6), run("def $x := 6 in def $y := 7 in $x"));
+    assertEquals(toValue(7), run("def $x := 6 in def $y := 7 in $y"));
+  }
+
 }

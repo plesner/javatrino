@@ -11,7 +11,6 @@ import org.ne.utrino.interpreter.Activation;
 import org.ne.utrino.interpreter.Assembler;
 import org.ne.utrino.interpreter.CodeBlock;
 import org.ne.utrino.interpreter.Interpreter;
-import org.ne.utrino.interpreter.Opcode;
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Exceptions;
 import org.ne.utrino.value.ITagValue;
@@ -140,9 +139,12 @@ public class NativeMethods {
   private static CodeBlock getNativeMethodCode(Field field) {
     IValue method = getNativeMethod(field);
     Assembler assm = new Assembler(null);
-    int index = assm.registerConstant(method);
     Native marker = field.getAnnotation(Native.class);
-    assm.write(marker.isControl() ? Opcode.CONTROL : Opcode.NATIVE, index);
+    if (marker.isControl()) {
+      assm.control(method);
+    } else {
+      assm.nathive(method);
+    }
     return assm.toCodeBlock();
   }
 

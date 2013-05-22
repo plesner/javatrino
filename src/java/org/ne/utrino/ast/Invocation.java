@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.ne.utrino.interpreter.Assembler;
-import org.ne.utrino.interpreter.Opcode;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
@@ -50,16 +49,23 @@ public class Invocation implements IExpression {
   }
 
   @Override
-  public String toString() {
-    StringBuilder buf = new StringBuilder();
-    buf.append("{");
-    for (int i = 0; i < order.length; i++) {
-      if (i > 0)
-        buf.append(", ");
-      buf.append(tags[i]).append(": ").append(values[i]);
-    }
-    buf.append("}");
-    return buf.toString();
+  public <T> void accept(IVisitor<T> visitor, T data) {
+    visitor.visitInvocation(this, data);
+  }
+
+  @Override
+  public void emit(Assembler assm) {
+    for (IExpression arg : values)
+      arg.emit(assm);
+    RInvocationDescriptor desc = new RInvocationDescriptor(order, tags);
+    assm.invoke(desc);
+  }
+
+  /**
+   * Returns the argument expressions to this invocation.
+   */
+  public IExpression[] getArguments() {
+    return this.values;
   }
 
   public static class RInvocationDescriptor extends RInternalData {
@@ -77,6 +83,13 @@ public class Invocation implements IExpression {
      */
     public int[] getOrder() {
       return this.order;
+    }
+
+    /**
+     * Returns the number of arguments being passed.
+     */
+    public int getArgumentCount() {
+      return this.order.length;
     }
 
     /**
@@ -126,12 +139,16 @@ public class Invocation implements IExpression {
   }
 
   @Override
-  public void emit(Assembler assm) {
-    for (IExpression arg : values)
-      arg.emit(assm);
-    RInvocationDescriptor desc = new RInvocationDescriptor(order, tags);
-    int descIndex = assm.registerConstant(desc);
-    assm.write(Opcode.INVOKE, descIndex);
+  public String toString() {
+    StringBuilder buf = new StringBuilder();
+    buf.append("{");
+    for (int i = 0; i < order.length; i++) {
+      if (i > 0)
+        buf.append(", ");
+      buf.append(tags[i]).append(": ").append(values[i]);
+    }
+    buf.append("}");
+    return buf.toString();
   }
 
 }

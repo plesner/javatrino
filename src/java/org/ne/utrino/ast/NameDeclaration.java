@@ -1,11 +1,13 @@
 package org.ne.utrino.ast;
 
+import org.ne.utrino.util.Name;
+
 public class NameDeclaration implements IDeclaration {
 
-  private final ISymbol name;
+  private final Name name;
   private final IExpression value;
 
-  public NameDeclaration(ISymbol name, IExpression value) {
+  public NameDeclaration(Name name, IExpression value) {
     this.name = name;
     this.value = value;
   }
@@ -18,7 +20,7 @@ public class NameDeclaration implements IDeclaration {
   /**
    * Returns the name being defined by this declaration.
    */
-  public ISymbol getName() {
+  public Name getName() {
     return this.name;
   }
 
