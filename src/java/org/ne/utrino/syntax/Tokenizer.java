@@ -3,12 +3,15 @@ package org.ne.utrino.syntax;
 import java.util.List;
 
 import org.ne.utrino.syntax.Token.DelimiterStatus;
+import org.ne.utrino.syntax.Token.LiteralToken;
+import org.ne.utrino.syntax.Token.TagToken;
 import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Internal;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.value.ITagValue;
+import org.ne.utrino.value.RInteger;
 import org.ne.utrino.value.RString;
 
 /**
@@ -206,7 +209,8 @@ public class Tokenizer {
     if (hasMore() && getCurrent() == ':') {
       int end = getCursor();
       advance();
-      return new Token(Type.TAG, source.substring(start, end), delimStatus);
+      String str = source.substring(start, end);
+      return new TagToken(delimStatus, RString.of(str));
     } else {
       return new Token(Type.WORD, source.substring(start, getCursor()), delimStatus);
     }
@@ -232,7 +236,16 @@ public class Tokenizer {
     int start = getCursor();
     while (hasMore() && isNumberPart(getCurrent()))
       advance();
-    return new Token(Type.NUMBER, source.substring(start, getCursor()), delimStatus);
+    int end = getCursor();
+    String str = source.substring(start, end);
+    int intValue = Integer.parseInt(str);
+    ITagValue value = RInteger.of(intValue);
+    if (hasMore() && getCurrent() == ':') {
+      advance();
+      return new TagToken(delimStatus, value);
+    } else {
+      return new LiteralToken(delimStatus, value);
+    }
   }
 
   /**

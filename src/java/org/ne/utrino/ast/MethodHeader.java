@@ -1,12 +1,13 @@
 package org.ne.utrino.ast;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.ne.utrino.compiler.ISymbol;
 import org.ne.utrino.compiler.ParameterSymbol;
 import org.ne.utrino.runtime.Guard;
 import org.ne.utrino.runtime.Signature;
+import org.ne.utrino.runtime.Signature.ParameterBuilder;
+import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.value.ITagValue;
 import org.ne.utrino.value.RKey;
@@ -30,17 +31,18 @@ public class MethodHeader {
   public static class Parameter {
 
     private final Name name;
-    private final ITagValue tag;
+    private final List<ITagValue> tags;
     private final ISymbol symbol = new ParameterSymbol(this);
 
-    public Parameter(Name name, ITagValue tag) {
+    public Parameter(Name name, List<ITagValue> tags) {
+      Assert.that(!tags.isEmpty());
       this.name = name;
-      this.tag = tag;
+      this.tags = tags;
     }
 
     @Override
     public String toString() {
-      return Objects.toString(name);
+      return tags + ": " + name;
     }
 
     /**
@@ -58,10 +60,10 @@ public class MethodHeader {
     }
 
     /**
-     * Returns this parameters position index.
+     * Returns this parameter's tags.
      */
-    public ITagValue getTag() {
-      return this.tag;
+    public List<ITagValue> getTags() {
+      return this.tags;
     }
 
   }
@@ -73,8 +75,11 @@ public class MethodHeader {
     Signature.Builder builder = Signature.newBuilder();
     builder.addParameter(Guard.any()).addTag(RKey.THIS);
     builder.addParameter(Guard.identity(RString.of(this.name))).addTag(RKey.NAME);
-    for (Parameter param : params)
-      builder.addParameter(Guard.any()).addTag(param.tag);
+    for (Parameter param : params) {
+      ParameterBuilder paramBuilder = builder.addParameter(Guard.any());
+      for (ITagValue tag : param.getTags())
+        paramBuilder.addTag(tag);
+    }
     return builder.build();
   }
 

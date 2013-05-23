@@ -19,6 +19,7 @@ import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.value.ITagValue;
+import org.ne.utrino.value.IValue;
 import org.ne.utrino.value.RInteger;
 
 public class Parser {
@@ -58,11 +59,11 @@ public class Parser {
   }
 
   private boolean atWord(String value) {
-    return at(Type.WORD) && getCurrent().getValue().equals(value);
+    return at(Type.WORD) && getCurrent().getString().equals(value);
   }
 
   private boolean atOperator(String value) {
-    return at(Type.OPERATOR) && getCurrent().getValue().equals(value);
+    return at(Type.OPERATOR) && getCurrent().getString().equals(value);
   }
 
   private void expectWord(String value) {
@@ -78,7 +79,7 @@ public class Parser {
   }
 
   private void expect(Type type, String value) {
-    if (!at(type) || !getCurrent().getValue().equals(value))
+    if (!at(type) || !getCurrent().getString().equals(value))
       throw newSyntaxError();
     advance();
   }
@@ -86,7 +87,7 @@ public class Parser {
   private String expectOperator() {
     if (!at(Type.OPERATOR))
       throw newSyntaxError();
-    String value = getCurrent().getValue();
+    String value = getCurrent().getString();
     advance();
     return value;
   }
@@ -99,6 +100,13 @@ public class Parser {
     return value;
   }
 
+  private ITagValue expectTag() {
+    if (!at(Type.TAG))
+      throw newSyntaxError();
+    ITagValue value = getCurrent().getTag();
+    advance();
+    return value;
+  }
 
   private void expect(Type type) {
     if (!at(type))
@@ -241,8 +249,14 @@ public class Parser {
    * Parses a single possibly tagged parameter.
    */
   private Parameter parseParameter(ITagValue implicitTag) {
+    List<ITagValue> tags = Factory.newArrayList();
+    tags.add(implicitTag);
+    while (at(Type.TAG)) {
+      ITagValue tag = expectTag();
+      tags.add(tag);
+    }
     Name name = expectIdentifier();
-    return new Parameter(name, implicitTag);
+    return new Parameter(name, tags);
   }
 
   /**
@@ -271,10 +285,10 @@ public class Parser {
 
   private IExpression parseAtomicExpression() {
     switch (getCurrent().getType()) {
-    case NUMBER: {
-      int value = Integer.parseInt(getCurrent().getValue());
+    case LITERAL: {
+      IValue value = getCurrent().getValue();
       advance();
-      return new Literal(new RInteger(value));
+      return new Literal(value);
     }
     case LPAREN: {
       expect(Type.LPAREN);

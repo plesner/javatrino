@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import org.ne.utrino.util.Assert;
 import org.ne.utrino.util.Name;
+import org.ne.utrino.value.ITagValue;
 
 /**
  * A single token within some source code.
@@ -26,12 +27,12 @@ public class Token {
   public enum Type {
 
     WORD      (null, "word",        Flavor.OTHER),
-    TAG       (null, "tag",     Flavor.OTHER),
+    TAG       (null, "tag",         Flavor.OTHER),
     STRING    (null, "string",      Flavor.OTHER),
     OPERATOR  (null, "operator",    Flavor.OTHER),
     ERROR     (null, "error",       Flavor.OTHER),
     EOF       (null, "eof",         Flavor.OTHER),
-    NUMBER    (null, "number",      Flavor.OTHER),
+    LITERAL   (null, "literal",     Flavor.OTHER),
     IDENTIFIER(null, "identifier",  Flavor.OTHER),
     LPAREN    ("(",  "punctuation", Flavor.PUNCTUATION),
     RPAREN    (")",  "punctuation", Flavor.PUNCTUATION),
@@ -147,11 +148,19 @@ public class Token {
     return this.type;
   }
 
-  public String getValue() {
-    return this.value;
+  public String getString() {
+    return Assert.notNull(this.value);
+  }
+
+  public ITagValue getValue() {
+    throw new UnsupportedOperationException();
   }
 
   public Name getName() {
+    throw new UnsupportedOperationException();
+  }
+
+  public ITagValue getTag() {
     throw new UnsupportedOperationException();
   }
 
@@ -213,5 +222,57 @@ public class Token {
     }
 
   }
+
+  public static class TagToken extends Token {
+
+    private final ITagValue tag;
+
+    public TagToken(DelimiterStatus delimStatus, ITagValue tag) {
+      super(Type.TAG, null, delimStatus);
+      this.tag = tag;
+    }
+
+    @Override
+    public ITagValue getTag() {
+      return this.tag;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (!super.equals(obj)) {
+        return false;
+      } else {
+        return (obj instanceof TagToken) && ((TagToken) obj).tag.isIdentical(this.tag);
+      }
+    }
+
+  }
+
+  public static class LiteralToken extends Token {
+
+    private final ITagValue value;
+
+    public LiteralToken(DelimiterStatus delimStatus, ITagValue value) {
+      super(Type.LITERAL, null, delimStatus);
+      this.value = value;
+    }
+
+    @Override
+    public ITagValue getValue() {
+      return this.value;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (!super.equals(obj)) {
+        return false;
+      } else {
+        return (obj instanceof LiteralToken) && ((LiteralToken) obj).value.isIdentical(this.value);
+      }
+    }
+
+
+  }
+
 
 }

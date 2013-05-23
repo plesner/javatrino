@@ -1,9 +1,13 @@
 package org.ne.utrino.syntax;
 
+import static org.ne.utrino.testing.TestFactory.toTag;
+
 import java.util.List;
 
 import org.junit.Test;
 import org.ne.utrino.syntax.Token.DelimiterStatus;
+import org.ne.utrino.syntax.Token.LiteralToken;
+import org.ne.utrino.syntax.Token.TagToken;
 import org.ne.utrino.syntax.Token.Type;
 import org.ne.utrino.util.Factory;
 
@@ -37,14 +41,15 @@ public class TokenizerTest extends TestCase {
     runScanTest("$foo:bar:baz", id("$foo:bar:baz"));
     runScanTest("(){};", pt(Type.LPAREN), pt(Type.RPAREN), pt(Type.LBRACE),
         pt(Type.RBRACE), pt(Type.SEMI));
-    runScanTest("foo:", kw("foo"));
-    runScanTest("10", nm("10"));
-    runScanTest("10 000", nm("10"), nm("000"));
+    runScanTest("foo:", tg("foo"));
+    runScanTest("10", lt(10));
+    runScanTest("10 000", lt(10), lt(000));
+    runScanTest("10:", tg(10));
     runScanTest("\"boo\"", st("boo"));
-    runScanTest("def $x := 4 ;", wd("def"), id("$x"), op(":="), nm("4"),
+    runScanTest("def $x := 4 ;", wd("def"), id("$x"), op(":="), lt(4),
         pt(Type.SEMI));
-    runScanTest("for $i in 0 -> 10", wd("for"), id("$i"), wd("in"), nm("0"),
-        op("->"), nm("10"));
+    runScanTest("for $i in 0 -> 10", wd("for"), id("$i"), wd("in"), lt(0),
+        op("->"), lt(10));
     runScanTest("+ - * /", op("+"), op("-"), op("*"), op("/"));
   }
 
@@ -64,12 +69,12 @@ public class TokenizerTest extends TestCase {
     return new Token(Type.STRING, string, DelimiterStatus.NONE);
   }
 
-  private Token kw(String string) {
-    return new Token(Type.TAG, string, DelimiterStatus.NONE);
+  private Token tg(Object obj) {
+    return new TagToken(DelimiterStatus.NONE, toTag(obj));
   }
 
-  private Token nm(String string) {
-    return new Token(Type.NUMBER, string, DelimiterStatus.NONE);
+  private Token lt(Object obj) {
+    return new LiteralToken(DelimiterStatus.NONE, toTag(obj));
   }
 
   private Token op(String string) {

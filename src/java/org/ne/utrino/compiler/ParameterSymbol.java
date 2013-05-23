@@ -13,7 +13,7 @@ public class ParameterSymbol implements ISymbol {
 
   @Override
   public void read(Assembler assm) {
-    assm.readArgument(param.getTag());
+    assm.readArgument(param.getTags().get(0));
   }
 
 }

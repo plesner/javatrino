@@ -1,5 +1,6 @@
 package org.ne.utrino.syntax;
 
+import static org.ne.utrino.testing.TestFactory.toTag;
 import static org.ne.utrino.testing.TestFactory.toValue;
 
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import org.ne.utrino.ast.MethodHeader;
 import org.ne.utrino.ast.MethodHeader.Parameter;
 import org.ne.utrino.ast.NameDeclaration;
 import org.ne.utrino.ast.Unit;
+import org.ne.utrino.util.Factory;
 import org.ne.utrino.util.Name;
 import org.ne.utrino.util.Pair;
 import org.ne.utrino.value.ITagValue;
@@ -83,9 +85,13 @@ public class ParserTest extends TestCase {
 
     checkExpression("fn => 4", lm(hd("()"), lt(4)));
     checkExpression("fn () => 5", lm(hd("()"), lt(5)));
-    checkExpression("fn ($a) => 6", lm(hd("()", pm("a")), lt(6)));
-    checkExpression("fn ($a, $b) => 7", lm(hd("()", pm("a"), pm("b")), lt(7)));
-    checkExpression("fn ($a, $b, $c) => 8", lm(hd("()", pm("a"), pm("b"), pm("c")), lt(8)));
+    checkExpression("fn ($a) => 6", lm(hd("()", pm(nm("a"), 0)), lt(6)));
+    checkExpression("fn ($a, $b) => 7", lm(hd("()", pm(nm("a"), 0), pm(nm("b"), 1)),
+        lt(7)));
+    checkExpression("fn ($a, $b, $c) => 8", lm(hd("()", pm(nm("a"), 0), pm(nm("b"), 1),
+        pm(nm("c"), 2)), lt(8)));
+    checkExpression("fn (x: $a) => 8", lm(hd("()", pm(nm("a"), 0, "x")), lt(8)));
+
     checkExpression("def $x := 3 in $x", ld(nd(nm("x"), lt(3)), id("x")));
     checkExpression("def $x := 3 in fn () => $x", ld(nd(nm("x"), lt(3)), lm(hd("()"), id("x"))));
   }
@@ -100,8 +106,11 @@ public class ParserTest extends TestCase {
   /**
    * Creates a new parameter.
    */
-  private static Parameter pm(String... parts) {
-    return new Parameter(nm(parts), null);
+  private static Parameter pm(Name name, Object... tagObjs) {
+    List<ITagValue> tags = Factory.newArrayList();
+    for (Object obj : tagObjs)
+      tags.add(toTag(obj));
+    return new Parameter(name, tags);
   }
 
   /**
